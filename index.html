@@ -102,15 +102,25 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js"></script>
 <script>
+let zxingLoaded = false;
+async function loadZXing() {
+  if (zxingLoaded) return;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+  zxingLoaded = true;
+}
 let data        = [];
 let activeGroup = '';
 let codeReader  = null;
 
 async function load() {
   try {
-    const r = await fetch('./lager.json?v=' + Date.now());
+    const r = await fetch('./lager.json');
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const raw = await r.json();
 
@@ -168,6 +178,7 @@ function render() {
         <div class="tags">
           ${d.lagerort    ? `<span class="tag ort">📍 ${x(d.lagerort)}</span>` : ''}
           ${d.warengruppe ? `<span class="tag">${x(d.warengruppe)}</span>` : ''}
+          ${d.ek          ? `<span class="tag" style="background:#eef6ff;color:#1c3f6e">EK ${x(d.ek)} €</span>` : ''}
           ${d.ean         ? `<span class="tag ean">EAN ${x(d.ean)}</span>` : ''}
         </div>
       </div>`;
@@ -204,33 +215,45 @@ function row(label, val) {
   return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${x(val)}</span></div>`;
 }
 
-/* ── Barcode Scanner (ZXing – funktioniert auf iPhone) ── */
-document.getElementById('scan-btn').addEventListener('click', startScan);
-document.getElementById('scan-close').addEventListener('click', stopScan);
+/* ── Barcode Scanner – Foto-Methode (funktioniert auf jedem iPhone) ── */
+const scanInput = document.createElement('input');
+scanInput.type = 'file';
+scanInput.accept = 'image/*';
+scanInput.capture = 'environment';
+scanInput.style.display = 'none';
+document.body.appendChild(scanInput);
 
-async function startScan() {
-  const overlay = document.getElementById('scanner-overlay');
-  const video   = document.getElementById('scanner-video');
+document.getElementById('scan-btn').addEventListener('click', () => scanInput.click());
+
+scanInput.addEventListener('change', async () => {
+  const file = scanInput.files[0];
+  if (!file) return;
+  scanInput.value = '';
+
+  document.getElementById('scan-hint').textContent = 'Barcode wird erkannt …';
+  document.getElementById('scanner-overlay').classList.add('active');
+
   try {
-    codeReader = new ZXingBrowser.BrowserMultiFormatReader();
-    overlay.classList.add('active');
-    await codeReader.decodeFromVideoDevice(null, video, (result, err) => {
-      if (result) {
-        stopScan();
-        document.getElementById('q').value = result.getText();
-        render();
-      }
-    });
-  } catch(e) {
-    stopScan();
-    alert('Kamera konnte nicht geöffnet werden:\n' + e.message);
-  }
-}
+    await loadZXing();
+    const img = new Image();
+    img.src = URL.createObjectURL(file);
+    await new Promise(r => img.onload = r);
 
-function stopScan() {
-  if (codeReader) { codeReader.reset(); codeReader = null; }
-  document.getElementById('scanner-overlay').classList.remove('active');
-}
+    const reader = new ZXingBrowser.BrowserMultiFormatReader();
+    const result = await reader.decodeFromImageElement(img);
+    URL.revokeObjectURL(img.src);
+
+    document.getElementById('scanner-overlay').classList.remove('active');
+    document.getElementById('q').value = result.getText();
+    render();
+  } catch(e) {
+    document.getElementById('scanner-overlay').classList.remove('active');
+    alert('Kein Barcode erkannt. Bitte nochmal versuchen.');
+  }
+});
+
+document.getElementById('scan-close').addEventListener('click', () =>
+  document.getElementById('scanner-overlay').classList.remove('active'));
 
 /* ── Detail schließen ── */
 document.getElementById('detail-close').addEventListener('click', () =>

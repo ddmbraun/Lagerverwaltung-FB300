@@ -440,11 +440,11 @@ Sub Schnellansicht_Suchen()
         If wsS.Rows(i).Hidden Then GoTo WeiterI  ' versteckte Zeilen ueberspringen beim Zaehlen nicht - wir zaehlen alle
         Dim suchIn As String
         If nurZahlen Then
-            ' EAN + ArtNr + Artikel
-            suchIn = LCase(wsS.Cells(i, 4).Value & " " & wsS.Cells(i, 5).Value & " " & wsS.Cells(i, 3).Value)
+            ' Nur Art.-Nr. + EAN
+            suchIn = LCase(wsS.Cells(i, 3).Value & " " & wsS.Cells(i, 5).Value)
         Else
-            ' Artikel + Art.-Nr. + Lagerort + Warengruppe
-            suchIn = LCase(wsS.Cells(i, 4).Value & " " & wsS.Cells(i, 3).Value & " " & wsS.Cells(i, 10).Value & " " & wsS.Cells(i, 11).Value)
+            ' Nur Artikeltext
+            suchIn = LCase(wsS.Cells(i, 4).Value)
         End If
         passt = True
         For w = 0 To UBound(woerter)

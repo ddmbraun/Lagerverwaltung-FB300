@@ -13,8 +13,11 @@
     #updated { font-size: 11px; opacity: .65; margin-top: 2px; }
 
     .search-bar { background: #fff; padding: 10px 12px; position: sticky; top: 54px; z-index: 199; border-bottom: 1px solid #dde1e7; display: flex; gap: 8px; align-items: center; }
-    .search-bar input { flex: 1; padding: 9px 14px; border: 1.5px solid #c5cad3; border-radius: 10px; font-size: 16px; outline: none; background: #f7f8fa; }
-    .search-bar input:focus { border-color: #1c3f6e; background: #fff; }
+    .search-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+    .search-wrap input { width: 100%; padding: 9px 36px 9px 14px; border: 1.5px solid #c5cad3; border-radius: 10px; font-size: 16px; outline: none; background: #f7f8fa; }
+    .search-wrap input:focus { border-color: #1c3f6e; background: #fff; }
+    #clear-btn { position: absolute; right: 10px; background: none; border: none; font-size: 18px; color: #aaa; cursor: pointer; display: none; line-height: 1; padding: 2px; }
+    #clear-btn.visible { display: block; }
     #scan-btn { flex-shrink: 0; width: 42px; height: 42px; background: #1c3f6e; color: #fff; border: none; border-radius: 10px; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
     #scan-status { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
@@ -54,7 +57,7 @@
     .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
     .tag { font-size: 11px; padding: 3px 9px; border-radius: 10px; background: #eef1f6; color: #4a5268; }
     .tag.ort { background: #e4f4e8; color: #256535; }
-    .tag.ek  { background: #eef6ff; color: #1c3f6e; }
+    .tag.vk  { background: #eef6ff; color: #1c3f6e; }
     .tag.ean { background: #fdf3e3; color: #7a5200; font-family: monospace; font-size: 10px; }
 
     .hint { text-align: center; padding: 48px 20px; color: #8a909c; font-size: 15px; }
@@ -69,8 +72,11 @@
 </header>
 
 <div class="search-bar">
-  <input type="search" id="q" placeholder="Artikel, Art.-Nr., EAN …"
-         autocomplete="off" autocorrect="off" autocapitalize="off">
+  <div class="search-wrap">
+    <input type="search" id="q" placeholder="Artikel, Art.-Nr., EAN …"
+           autocomplete="off" autocorrect="off" autocapitalize="off">
+    <button id="clear-btn" title="Suche löschen">✕</button>
+  </div>
   <button id="scan-btn">📷</button>
 </div>
 
@@ -97,7 +103,9 @@
 </div>
 
 <script>
-// ── Hilfsfunktionen ──────────────────────────────────────
+var CACHE_KEY = 'lager_data';
+var CACHE_TS  = 'lager_ts';
+
 function esc(s) {
   return (s == null ? '' : String(s))
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -108,45 +116,69 @@ function fmtPreis(s) {
   return isNaN(n) ? (s || '') : n.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
-// ── Daten ────────────────────────────────────────────────
 var data        = [];
 var activeGroup = '';
 
-async function load() {
-  try {
-    var r = await fetch('./lager.json');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    var raw = await r.json();
-    data = raw.filter(function(d) {
-      return d.artnr && d.artnr !== 'Art.-Nr.' && d.nr !== '#';
-    });
+// Cache: sofort aus localStorage laden, dann im Hintergrund aktualisieren
+function initData() {
+  var cached = localStorage.getItem(CACHE_KEY);
+  if (cached) {
+    try {
+      var parsed = JSON.parse(cached);
+      applyData(parsed, true);
+    } catch(e) {}
+  }
+  fetchFresh();
+}
 
+function fetchFresh() {
+  fetch('./lager.json')
+    .then(function(r) { return r.ok ? r.json() : Promise.reject('HTTP ' + r.status); })
+    .then(function(raw) {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(raw));
+      localStorage.setItem(CACHE_TS, Date.now());
+      applyData(raw, false);
+    })
+    .catch(function(e) {
+      if (!data.length) {
+        document.getElementById('results').innerHTML =
+          '<div class="hint" style="color:#c0392b"><span class="icon">⚠️</span>Fehler: ' + e + '</div>';
+      }
+    });
+}
+
+function applyData(raw, fromCache) {
+  data = raw.filter(function(d) {
+    return d.artnr && d.artnr !== 'Art.-Nr.' && d.nr !== '#';
+  });
+
+  // Chips neu aufbauen (nur beim ersten Mal)
+  var bar = document.getElementById('chips');
+  if (bar.children.length <= 1) {
     var groups = [];
     data.forEach(function(d) {
       if (d.warengruppe && groups.indexOf(d.warengruppe) === -1) groups.push(d.warengruppe);
     });
-    groups.sort();
-    var bar = document.getElementById('chips');
-    groups.forEach(function(g) {
+    groups.sort().forEach(function(g) {
       var btn = document.createElement('button');
-      btn.className = 'chip';
-      btn.dataset.group = g;
-      btn.textContent = g;
+      btn.className = 'chip'; btn.dataset.group = g; btn.textContent = g;
       bar.appendChild(btn);
     });
-
-    document.getElementById('updated').textContent =
-      'Stand: ' + new Date().toLocaleString('de-DE', {dateStyle:'short', timeStyle:'short'});
-    render();
-  } catch(e) {
-    document.getElementById('results').innerHTML =
-      '<div class="hint" style="color:#c0392b"><span class="icon">⚠️</span>Fehler: ' + e.message + '</div>';
   }
+
+  var ts = localStorage.getItem(CACHE_TS);
+  var tsText = ts ? new Date(parseInt(ts)).toLocaleString('de-DE', {dateStyle:'short', timeStyle:'short'}) : '';
+  document.getElementById('updated').textContent =
+    (fromCache ? 'Cache: ' : 'Stand: ') + tsText;
+
+  render();
 }
 
 function render() {
-  var q = document.getElementById('q').value.trim().toLowerCase();
+  var q    = document.getElementById('q').value.trim().toLowerCase();
   var keys = ['artnr','artikel','ean','lagerort','attribut','warengruppe','nr'];
+
+  document.getElementById('clear-btn').classList.toggle('visible', q.length > 0);
 
   var filtered = data.filter(function(d) {
     if (activeGroup && d.warengruppe !== activeGroup) return false;
@@ -179,7 +211,7 @@ function render() {
     html += '</div><div class="tags">';
     if (d.lagerort)    html += '<span class="tag ort">📍 ' + esc(d.lagerort) + '</span>';
     if (d.warengruppe) html += '<span class="tag">' + esc(d.warengruppe) + '</span>';
-    if (d.ek)          html += '<span class="tag ek">EK ' + esc(d.ek) + ' €</span>';
+    if (d.vk)          html += '<span class="tag vk">VK ' + esc(d.vk) + ' €</span>';
     if (d.ean)         html += '<span class="tag ean">EAN ' + esc(d.ean) + '</span>';
     html += '</div></div>';
   }
@@ -194,12 +226,13 @@ function showDetail(idx) {
 
   document.getElementById('detail-title').textContent = d.artikel || '';
 
-  var c = '<div class="detail-bestand ' + cls + '">' + esc(d.bestand) + ' ' + esc(d.einheit) + '</div>';
   function r(label, val) {
     if (!val) return '';
     return '<div class="detail-row"><span class="detail-label">' + label +
            '</span><span class="detail-value">' + esc(val) + '</span></div>';
   }
+
+  var c = '<div class="detail-bestand ' + cls + '">' + esc(d.bestand) + ' ' + esc(d.einheit) + '</div>';
   c += r('Art.-Nr.',    d.artnr);
   c += r('EAN',         d.ean);
   c += r('Lagerort',    d.lagerort);
@@ -213,13 +246,19 @@ function showDetail(idx) {
   document.getElementById('detail-overlay').classList.add('active');
 }
 
-// ── Detail schließen ─────────────────────────────────────
+// ── Clear-Button ─────────────────────────────────────────
+document.getElementById('clear-btn').addEventListener('click', function() {
+  document.getElementById('q').value = '';
+  this.classList.remove('visible');
+  render();
+});
+
+// ── Detail ───────────────────────────────────────────────
 document.getElementById('detail-close').addEventListener('click', function() {
   document.getElementById('detail-overlay').classList.remove('active');
 });
 document.getElementById('detail-overlay').addEventListener('click', function(e) {
-  if (e.target === document.getElementById('detail-overlay'))
-    document.getElementById('detail-overlay').classList.remove('active');
+  if (e.target === this) this.classList.remove('active');
 });
 
 // ── Filter-Chips ─────────────────────────────────────────
@@ -243,10 +282,7 @@ scanInput.capture = 'environment';
 scanInput.style.display = 'none';
 document.body.appendChild(scanInput);
 
-document.getElementById('scan-btn').addEventListener('click', function() {
-  scanInput.click();
-});
-
+document.getElementById('scan-btn').addEventListener('click', function() { scanInput.click(); });
 document.getElementById('scan-cancel').addEventListener('click', function() {
   document.getElementById('scan-status').classList.remove('active');
 });
@@ -255,46 +291,36 @@ scanInput.addEventListener('change', function() {
   var file = scanInput.files[0];
   if (!file) return;
   scanInput.value = '';
+  document.getElementById('scan-msg').textContent = 'Barcode wird erkannt …';
+  document.getElementById('scan-status').classList.add('active');
 
-  var status = document.getElementById('scan-status');
-  var msg    = document.getElementById('scan-msg');
-  msg.textContent = 'Barcode wird erkannt …';
-  status.classList.add('active');
-
-  var script = document.createElement('script');
-  script.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js';
-  script.onload = function() {
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js';
+  s.onload = function() {
     var img = new Image();
     var url = URL.createObjectURL(file);
     img.onload = function() {
-      try {
-        var reader = new ZXingBrowser.BrowserMultiFormatReader();
-        reader.decodeFromImageElement(img).then(function(result) {
+      new ZXingBrowser.BrowserMultiFormatReader()
+        .decodeFromImageElement(img)
+        .then(function(result) {
           URL.revokeObjectURL(url);
-          status.classList.remove('active');
+          document.getElementById('scan-status').classList.remove('active');
           document.getElementById('q').value = result.getText();
           render();
-        }).catch(function() {
+        })
+        .catch(function() {
           URL.revokeObjectURL(url);
-          status.classList.remove('active');
+          document.getElementById('scan-status').classList.remove('active');
           alert('Kein Barcode erkannt – bitte nochmal versuchen.');
         });
-      } catch(e) {
-        status.classList.remove('active');
-        alert('Fehler: ' + e.message);
-      }
     };
     img.src = url;
   };
-  if (!window.ZXingBrowser) {
-    document.head.appendChild(script);
-  } else {
-    script.onload();
-  }
+  if (window.ZXingBrowser) { s.onload(); } else { document.head.appendChild(s); }
 });
 
 // ── Start ────────────────────────────────────────────────
-load();
+initData();
 </script>
 </body>
 </html>

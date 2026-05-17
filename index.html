@@ -17,14 +17,11 @@
     .search-bar input:focus { border-color: #1c3f6e; background: #fff; }
     #scan-btn { flex-shrink: 0; width: 42px; height: 42px; background: #1c3f6e; color: #fff; border: none; border-radius: 10px; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-    /* Scanner */
-    #scanner-overlay { display: none; position: fixed; inset: 0; z-index: 999; background: #000; flex-direction: column; align-items: center; justify-content: center; }
-    #scanner-overlay.active { display: flex; }
-    #scanner-video { width: 100%; max-width: 480px; border-radius: 12px; }
-    #scan-close { margin-top: 20px; padding: 12px 32px; background: #fff; color: #1c3f6e; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
-    #scan-hint { color: #fff; font-size: 14px; margin-top: 12px; opacity: .8; text-align: center; }
+    #scan-status { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    #scan-status.active { display: flex; }
+    #scan-status p { color: #fff; font-size: 16px; }
+    #scan-cancel { padding: 10px 28px; background: #fff; color: #1c3f6e; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
 
-    /* Detail */
     #detail-overlay { display: none; position: fixed; inset: 0; z-index: 998; background: rgba(0,0,0,0.5); align-items: flex-end; }
     #detail-overlay.active { display: flex; }
     #detail-box { background: #fff; width: 100%; border-radius: 20px 20px 0 0; padding: 20px 16px 40px; max-height: 85vh; overflow-y: auto; }
@@ -38,7 +35,6 @@
     .detail-label { color: #888; }
     .detail-value { font-weight: 500; text-align: right; max-width: 65%; word-break: break-all; }
 
-    /* Filter */
     .chips { display: flex; gap: 7px; padding: 8px 12px; overflow-x: auto; background: #fff; border-bottom: 1px solid #dde1e7; -webkit-overflow-scrolling: touch; }
     .chips::-webkit-scrollbar { display: none; }
     .chip { flex-shrink: 0; padding: 5px 13px; border-radius: 20px; border: 1.5px solid #c5cad3; background: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
@@ -58,6 +54,7 @@
     .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
     .tag { font-size: 11px; padding: 3px 9px; border-radius: 10px; background: #eef1f6; color: #4a5268; }
     .tag.ort { background: #e4f4e8; color: #256535; }
+    .tag.ek  { background: #eef6ff; color: #1c3f6e; }
     .tag.ean { background: #fdf3e3; color: #7a5200; font-family: monospace; font-size: 10px; }
 
     .hint { text-align: center; padding: 48px 20px; color: #8a909c; font-size: 15px; }
@@ -74,7 +71,7 @@
 <div class="search-bar">
   <input type="search" id="q" placeholder="Artikel, Art.-Nr., EAN …"
          autocomplete="off" autocorrect="off" autocapitalize="off">
-  <button id="scan-btn" title="Barcode scannen">📷</button>
+  <button id="scan-btn">📷</button>
 </div>
 
 <div class="chips" id="chips">
@@ -86,14 +83,11 @@
   <div class="hint"><span class="icon">⏳</span>Lagerdaten werden geladen …</div>
 </div>
 
-<!-- Scanner -->
-<div id="scanner-overlay">
-  <video id="scanner-video" autoplay playsinline muted></video>
-  <div id="scan-hint">Halte den Barcode vor die Kamera</div>
-  <button id="scan-close">✕ Schließen</button>
+<div id="scan-status">
+  <p id="scan-msg">Barcode wird erkannt …</p>
+  <button id="scan-cancel">Abbrechen</button>
 </div>
 
-<!-- Detail -->
 <div id="detail-overlay">
   <div id="detail-box">
     <button id="detail-close">✕</button>
@@ -103,35 +97,41 @@
 </div>
 
 <script>
-let zxingLoaded = false;
-async function loadZXing() {
-  if (zxingLoaded) return;
-  await new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js';
-    s.onload = resolve; s.onerror = reject;
-    document.head.appendChild(s);
-  });
-  zxingLoaded = true;
+// ── Hilfsfunktionen ──────────────────────────────────────
+function esc(s) {
+  return (s == null ? '' : String(s))
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-let data        = [];
-let activeGroup = '';
-let codeReader  = null;
+
+function fmtPreis(s) {
+  var n = parseFloat((s || '').replace(',', '.'));
+  return isNaN(n) ? (s || '') : n.toLocaleString('de-DE', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+
+// ── Daten ────────────────────────────────────────────────
+var data        = [];
+var activeGroup = '';
 
 async function load() {
   try {
-    const r = await fetch('./lager.json');
+    var r = await fetch('./lager.json');
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    const raw = await r.json();
+    var raw = await r.json();
+    data = raw.filter(function(d) {
+      return d.artnr && d.artnr !== 'Art.-Nr.' && d.nr !== '#';
+    });
 
-    // Überschriften-Zeile herausfiltern
-    data = raw.filter(d => d.artnr && d.artnr !== 'Art.-Nr.' && d.nr !== '#');
-
-    const groups = [...new Set(data.map(d => d.warengruppe).filter(Boolean))].sort();
-    const bar = document.getElementById('chips');
-    groups.forEach(g => {
-      const btn = document.createElement('button');
-      btn.className = 'chip'; btn.dataset.group = g; btn.textContent = g;
+    var groups = [];
+    data.forEach(function(d) {
+      if (d.warengruppe && groups.indexOf(d.warengruppe) === -1) groups.push(d.warengruppe);
+    });
+    groups.sort();
+    var bar = document.getElementById('chips');
+    groups.forEach(function(g) {
+      var btn = document.createElement('button');
+      btn.className = 'chip';
+      btn.dataset.group = g;
+      btn.textContent = g;
       bar.appendChild(btn);
     });
 
@@ -140,140 +140,160 @@ async function load() {
     render();
   } catch(e) {
     document.getElementById('results').innerHTML =
-      `<div class="hint" style="color:#c0392b"><span class="icon">⚠️</span>Fehler: ${e.message}</div>`;
+      '<div class="hint" style="color:#c0392b"><span class="icon">⚠️</span>Fehler: ' + e.message + '</div>';
   }
 }
 
 function render() {
-  const q = document.getElementById('q').value.trim().toLowerCase();
-  const filtered = data.filter(d => {
+  var q = document.getElementById('q').value.trim().toLowerCase();
+  var keys = ['artnr','artikel','ean','lagerort','attribut','warengruppe','nr'];
+
+  var filtered = data.filter(function(d) {
     if (activeGroup && d.warengruppe !== activeGroup) return false;
     if (!q) return true;
-    return ['artnr','artikel','ean','lagerort','attribut','warengruppe','nr']
-      .some(k => (d[k] || '').toLowerCase().includes(q));
+    return keys.some(function(k) {
+      return (d[k] || '').toLowerCase().indexOf(q) !== -1;
+    });
   });
 
   document.getElementById('info').textContent =
-    filtered.length + ' Artikel' + (q ? ` für „${q}"` : '');
+    filtered.length + ' Artikel' + (q ? ' für „' + q + '"' : '');
 
-  const box = document.getElementById('results');
+  var box = document.getElementById('results');
   if (!filtered.length) {
-    box.innerHTML = `<div class="hint"><span class="icon">🔍</span>Keine Artikel gefunden.</div>`;
+    box.innerHTML = '<div class="hint"><span class="icon">🔍</span>Keine Artikel gefunden.</div>';
     return;
   }
 
-  box.innerHTML = filtered.map(d => {
-    const b   = parseFloat((d.bestand||'0').replace(',','.')) || 0;
-    const cls = b <= 0 ? 'low' : 'ok';
-    const idx = data.indexOf(d);
-    return `
-      <div class="card" onclick="showDetail(${idx})">
-        <div class="card-top">
-          <div>
-            <div class="art-nr">${x(d.artnr)}</div>
-            <div class="art-name">${x(d.artikel)}</div>
-          </div>
-          <div class="bestand ${cls}">${x(d.bestand)}&thinsp;${x(d.einheit)}</div>
-        </div>
-        <div class="tags">
-          ${d.lagerort    ? `<span class="tag ort">📍 ${x(d.lagerort)}</span>` : ''}
-          ${d.warengruppe ? `<span class="tag">${x(d.warengruppe)}</span>` : ''}
-          ${d.ek          ? `<span class="tag" style="background:#eef6ff;color:#1c3f6e">EK ${x(d.ek)} €</span>` : ''}
-          ${d.ean         ? `<span class="tag ean">EAN ${x(d.ean)}</span>` : ''}
-        </div>
-      </div>`;
-  }).join('');
+  var html = '';
+  for (var i = 0; i < filtered.length; i++) {
+    var d   = filtered[i];
+    var idx = data.indexOf(d);
+    var b   = parseFloat((d.bestand || '0').replace(',', '.')) || 0;
+    var cls = b <= 0 ? 'low' : 'ok';
+    html += '<div class="card" onclick="showDetail(' + idx + ')">';
+    html += '<div class="card-top">';
+    html += '<div><div class="art-nr">' + esc(d.artnr) + '</div>';
+    html += '<div class="art-name">' + esc(d.artikel) + '</div></div>';
+    html += '<div class="bestand ' + cls + '">' + esc(d.bestand) + '&thinsp;' + esc(d.einheit) + '</div>';
+    html += '</div><div class="tags">';
+    if (d.lagerort)    html += '<span class="tag ort">📍 ' + esc(d.lagerort) + '</span>';
+    if (d.warengruppe) html += '<span class="tag">' + esc(d.warengruppe) + '</span>';
+    if (d.ek)          html += '<span class="tag ek">EK ' + esc(d.ek) + ' €</span>';
+    if (d.ean)         html += '<span class="tag ean">EAN ' + esc(d.ean) + '</span>';
+    html += '</div></div>';
+  }
+  box.innerHTML = html;
 }
 
 function showDetail(idx) {
-  const d = data[idx];
+  var d = data[idx];
   if (!d) return;
-  const b   = parseFloat((d.bestand||'0').replace(',','.')) || 0;
-  const cls = b <= 0 ? 'low' : 'ok';
-  const fmtNum = s => {
-    const n = parseFloat((s||'').replace(',','.'));
-    return isNaN(n) ? s : n.toLocaleString('de-DE',{minimumFractionDigits:2,maximumFractionDigits:2});
-  };
+  var b   = parseFloat((d.bestand || '0').replace(',', '.')) || 0;
+  var cls = b <= 0 ? 'low' : 'ok';
 
   document.getElementById('detail-title').textContent = d.artikel || '';
-  document.getElementById('detail-content').innerHTML = `
-    <div class="detail-bestand ${cls}">${x(d.bestand)} ${x(d.einheit)}</div>
-    ${row('Art.-Nr.',    d.artnr)}
-    ${row('EAN',         d.ean)}
-    ${row('Lagerort',    d.lagerort)}
-    ${row('Warengruppe', d.warengruppe)}
-    ${row('Attribut',    d.attribut)}
-    ${row('VK-Preis',    d.vk ? fmtNum(d.vk) + ' €' : '')}
-    ${row('EK-Preis',    d.ek ? fmtNum(d.ek) + ' €' : '')}
-    ${row('Nr.',         d.nr)}
-  `;
+
+  var c = '<div class="detail-bestand ' + cls + '">' + esc(d.bestand) + ' ' + esc(d.einheit) + '</div>';
+  function r(label, val) {
+    if (!val) return '';
+    return '<div class="detail-row"><span class="detail-label">' + label +
+           '</span><span class="detail-value">' + esc(val) + '</span></div>';
+  }
+  c += r('Art.-Nr.',    d.artnr);
+  c += r('EAN',         d.ean);
+  c += r('Lagerort',    d.lagerort);
+  c += r('Warengruppe', d.warengruppe);
+  c += r('Attribut',    d.attribut);
+  c += r('VK-Preis',    d.vk ? fmtPreis(d.vk) + ' €' : '');
+  c += r('EK-Preis',    d.ek ? fmtPreis(d.ek) + ' €' : '');
+  c += r('Nr.',         d.nr);
+
+  document.getElementById('detail-content').innerHTML = c;
   document.getElementById('detail-overlay').classList.add('active');
 }
 
-function row(label, val) {
-  if (!val) return '';
-  return `<div class="detail-row"><span class="detail-label">${label}</span><span class="detail-value">${x(val)}</span></div>`;
-}
+// ── Detail schließen ─────────────────────────────────────
+document.getElementById('detail-close').addEventListener('click', function() {
+  document.getElementById('detail-overlay').classList.remove('active');
+});
+document.getElementById('detail-overlay').addEventListener('click', function(e) {
+  if (e.target === document.getElementById('detail-overlay'))
+    document.getElementById('detail-overlay').classList.remove('active');
+});
 
-/* ── Barcode Scanner – Foto-Methode (funktioniert auf jedem iPhone) ── */
-const scanInput = document.createElement('input');
+// ── Filter-Chips ─────────────────────────────────────────
+document.getElementById('chips').addEventListener('click', function(e) {
+  var chip = e.target.closest('.chip');
+  if (!chip) return;
+  document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
+  chip.classList.add('active');
+  activeGroup = chip.dataset.group;
+  render();
+});
+
+// ── Suche ────────────────────────────────────────────────
+document.getElementById('q').addEventListener('input', render);
+
+// ── Barcode Scanner ──────────────────────────────────────
+var scanInput = document.createElement('input');
 scanInput.type = 'file';
 scanInput.accept = 'image/*';
 scanInput.capture = 'environment';
 scanInput.style.display = 'none';
 document.body.appendChild(scanInput);
 
-document.getElementById('scan-btn').addEventListener('click', () => scanInput.click());
+document.getElementById('scan-btn').addEventListener('click', function() {
+  scanInput.click();
+});
 
-scanInput.addEventListener('change', async () => {
-  const file = scanInput.files[0];
+document.getElementById('scan-cancel').addEventListener('click', function() {
+  document.getElementById('scan-status').classList.remove('active');
+});
+
+scanInput.addEventListener('change', function() {
+  var file = scanInput.files[0];
   if (!file) return;
   scanInput.value = '';
 
-  document.getElementById('scan-hint').textContent = 'Barcode wird erkannt …';
-  document.getElementById('scanner-overlay').classList.add('active');
+  var status = document.getElementById('scan-status');
+  var msg    = document.getElementById('scan-msg');
+  msg.textContent = 'Barcode wird erkannt …';
+  status.classList.add('active');
 
-  try {
-    await loadZXing();
-    const img = new Image();
-    img.src = URL.createObjectURL(file);
-    await new Promise(r => img.onload = r);
-
-    const reader = new ZXingBrowser.BrowserMultiFormatReader();
-    const result = await reader.decodeFromImageElement(img);
-    URL.revokeObjectURL(img.src);
-
-    document.getElementById('scanner-overlay').classList.remove('active');
-    document.getElementById('q').value = result.getText();
-    render();
-  } catch(e) {
-    document.getElementById('scanner-overlay').classList.remove('active');
-    alert('Kein Barcode erkannt. Bitte nochmal versuchen.');
+  var script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js';
+  script.onload = function() {
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      try {
+        var reader = new ZXingBrowser.BrowserMultiFormatReader();
+        reader.decodeFromImageElement(img).then(function(result) {
+          URL.revokeObjectURL(url);
+          status.classList.remove('active');
+          document.getElementById('q').value = result.getText();
+          render();
+        }).catch(function() {
+          URL.revokeObjectURL(url);
+          status.classList.remove('active');
+          alert('Kein Barcode erkannt – bitte nochmal versuchen.');
+        });
+      } catch(e) {
+        status.classList.remove('active');
+        alert('Fehler: ' + e.message);
+      }
+    };
+    img.src = url;
+  };
+  if (!window.ZXingBrowser) {
+    document.head.appendChild(script);
+  } else {
+    script.onload();
   }
 });
 
-document.getElementById('scan-close').addEventListener('click', () =>
-  document.getElementById('scanner-overlay').classList.remove('active'));
-
-/* ── Detail schließen ── */
-document.getElementById('detail-close').addEventListener('click', () =>
-  document.getElementById('detail-overlay').classList.remove('active'));
-document.getElementById('detail-overlay').addEventListener('click', e => {
-  if (e.target === document.getElementById('detail-overlay'))
-    document.getElementById('detail-overlay').classList.remove('active');
-});
-
-/* ── Events ── */
-document.getElementById('q').addEventListener('input', render);
-document.getElementById('chips').addEventListener('click', e => {
-  const chip = e.target.closest('.chip');
-  if (!chip) return;
-  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
-  chip.classList.add('active');
-  activeGroup = chip.dataset.group;
-  render();
-});
-
+// ── Start ────────────────────────────────────────────────
 load();
 </script>
 </body>

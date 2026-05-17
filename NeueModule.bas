@@ -1969,17 +1969,17 @@ Private Sub ExportLagerJSON(targetDir As String, sheetName As String)
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Sheets(sheetName)
 
-    Const C_NR          As Integer = 1
-    Const C_ARTNR       As Integer = 2
-    Const C_ARTIKEL     As Integer = 3
-    Const C_EAN         As Integer = 4
-    Const C_VK          As Integer = 5
-    Const C_EK          As Integer = 6
-    Const C_BESTAND     As Integer = 7
-    Const C_EINHEIT     As Integer = 8
-    Const C_LAGERORT    As Integer = 9
-    Const C_WARENGRUPPE As Integer = 10
-    Const C_ATTRIBUT    As Integer = 11
+    Const C_NR          As Integer = 2
+Const C_ARTNR       As Integer = 3
+Const C_ARTIKEL     As Integer = 4
+Const C_EAN         As Integer = 5
+Const C_VK          As Integer = 6
+Const C_EK          As Integer = 7
+Const C_BESTAND     As Integer = 8
+Const C_EINHEIT     As Integer = 9
+Const C_LAGERORT    As Integer = 10
+Const C_WARENGRUPPE As Integer = 11
+Const C_ATTRIBUT    As Integer = 12
 
     Dim lastRow As Long
     lastRow = ws.Cells(ws.Rows.Count, C_ARTNR).End(xlUp).Row
@@ -1992,7 +1992,7 @@ Private Sub ExportLagerJSON(targetDir As String, sheetName As String)
     Dim i     As Long
     Dim artNr As String
 
-    For i = 2 To lastRow
+    For i = 3 To lastRow
 
         artNr = Trim(CStr(ws.Cells(i, C_ARTNR).Value))
         If artNr = "" Then GoTo NextRow

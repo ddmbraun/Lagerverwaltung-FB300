@@ -1,20 +1,14 @@
 ' ============================================================
-' Diese Subs in dein bestehendes Modul "NeueModule" einfuegen
-' Einfach ans Ende des Moduls kopieren
+' ERSETZT die vorhandenen GitHub_Export und ExportLagerJSON
+' Subs in deinem Modul "NeueModule"
 ' ============================================================
 
-' === KONFIGURATION – hier anpassen falls noetig ===
-Private Const GIT_DIR     As String = "D:\_KI-Projekte-2026\07_Lagerverwaltung-Excel\Lagerverw. FB300\"
-Private Const LAGER_SHEET As String = "Schnellansicht"
-' ===================================================
-
-
-' ------------------------------------------------------------
-' Hauptroutine – wird vom Button "GITHUB" aufgerufen
-' ------------------------------------------------------------
 Sub GitHub_Export()
 
     On Error GoTo Fehler
+
+    Const GIT_DIR     As String = "D:\_KI-Projekte-2026\07_Lagerverwaltung-Excel\Lagerverw. FB300\"
+    Const LAGER_SHEET As String = "Schnellansicht"
 
     ' --- 1. VBA-Module als .bas exportieren ---
     Dim moduleNames As Variant
@@ -75,27 +69,24 @@ Fehler:
 End Sub
 
 
-' ------------------------------------------------------------
-' Exportiert Blatt "Schnellansicht" als lager.json
-' Spalten: # | Art.-Nr. | Artikel | EAN | VK | EK |
-'          Bestand | Einheit | Lagerort | Warengruppe | Attribut
-' ------------------------------------------------------------
 Private Sub ExportLagerJSON(targetDir As String, sheetName As String)
 
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Sheets(sheetName)
 
-    Const C_NR          As Integer = 1
-    Const C_ARTNR       As Integer = 2
-    Const C_ARTIKEL     As Integer = 3
-    Const C_EAN         As Integer = 4
-    Const C_VK          As Integer = 5
-    Const C_EK          As Integer = 6
-    Const C_BESTAND     As Integer = 7
-    Const C_EINHEIT     As Integer = 8
-    Const C_LAGERORT    As Integer = 9
-    Const C_WARENGRUPPE As Integer = 10
-    Const C_ATTRIBUT    As Integer = 11
+    ' Spalten – Zeile 1 = Titel, Zeile 2 = Ueberschriften, Daten ab Zeile 3
+    ' Spalte A = leer/intern, Daten beginnen in Spalte B
+    Const C_NR          As Integer = 2   ' #
+    Const C_ARTNR       As Integer = 3   ' Art.-Nr.
+    Const C_ARTIKEL     As Integer = 4   ' Artikel
+    Const C_EAN         As Integer = 5   ' EAN
+    Const C_VK          As Integer = 6   ' VK-Preis
+    Const C_EK          As Integer = 7   ' EK-Preis
+    Const C_BESTAND     As Integer = 8   ' Bestand
+    Const C_EINHEIT     As Integer = 9   ' Einheit
+    Const C_LAGERORT    As Integer = 10  ' Lagerort
+    Const C_WARENGRUPPE As Integer = 11  ' Warengruppe
+    Const C_ATTRIBUT    As Integer = 12  ' Attribut
 
     Dim lastRow As Long
     lastRow = ws.Cells(ws.Rows.Count, C_ARTNR).End(xlUp).Row
@@ -108,7 +99,7 @@ Private Sub ExportLagerJSON(targetDir As String, sheetName As String)
     Dim i     As Long
     Dim artNr As String
 
-    For i = 2 To lastRow
+    For i = 3 To lastRow   ' Zeile 1 = Titel, Zeile 2 = Ueberschriften
 
         artNr = Trim(CStr(ws.Cells(i, C_ARTNR).Value))
         If artNr = "" Then GoTo NextRow
@@ -144,7 +135,6 @@ NextRow:
 End Sub
 
 
-' Hilfsfunktion: Zellwert als JSON-String
 Private Function JStr(cell As Range) As String
     Dim s As String
     s = CStr(cell.Value)

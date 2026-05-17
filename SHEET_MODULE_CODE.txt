@@ -1,0 +1,95 @@
+=====================================================================
+  SHEET-MODUL CODE - Lagerverwaltung 2026
+  Einzufügen im VBA-Editor (Alt+F11)
+=====================================================================
+
+SCHRITT 0: Backup-Dateien schließen!
+--------------------------------------
+Beide Backup-Dateien schließen (Datei → Schließen)
+Nur 2026_Lagerverwaltung.xlsm soll offen sein!
+
+
+=====================================================================
+BLATT 1: Artikel-Sheet  (Tabelle19)
+Alt+F11 → links auf "Tabelle19 (Artikel)" doppelklicken
+Alten Code löschen (Strg+A, Entf) → diesen Code einfügen:
+=====================================================================
+
+Option Explicit
+
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    Toolbar_Handler Target
+End Sub
+
+Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
+    Artikelblatt_DoppelklickHandler Target, Cancel
+End Sub
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Artikelblatt_SearchChange Target
+End Sub
+
+
+=====================================================================
+BLATT 2: Schnellansicht-Sheet  (Tabelle20)
+Alt+F11 → links auf "Tabelle20 (Schnellansicht)" doppelklicken
+Alten Code löschen → diesen Code einfügen:
+=====================================================================
+
+Option Explicit
+
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    Schnellansicht_Handler Target
+End Sub
+
+Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)
+    Schnellansicht_DoppelklickHandler Target, Cancel
+End Sub
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    Schnellansicht_BestandChange Target
+End Sub
+
+
+=====================================================================
+BLATT 3: ArtikelDetail-Sheet  (Tabelle27)
+Alt+F11 → links auf "Tabelle27 (ArtikelDetail)" doppelklicken
+Alten Code löschen → diesen Code einfügen:
+=====================================================================
+
+Option Explicit
+
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    ArtikelDetail_Handler Target
+End Sub
+
+
+=====================================================================
+BLATT 4: BewPopup-Sheet  (Tabelle29)
+Alt+F11 → links auf "Tabelle29 (BewPopup)" doppelklicken
+Alten Code löschen → diesen Code einfügen:
+=====================================================================
+
+Option Explicit
+
+Private Sub Worksheet_SelectionChange(ByVal Target As Range)
+    Bewegungen_Handler Target
+End Sub
+
+
+=====================================================================
+NACH DEM EINFÜGEN:
+=====================================================================
+
+1. Kompilieren:  Debuggen → Kompilieren  (kein Fehler = OK)
+2. Speichern:    Strg+S
+3. Test:         Im Artikel-Sheet auf eine Zeile klicken
+                 → Zeile soll gelb werden
+
+Falls Fehler: Namen der Sheets im linken Baum prüfen!
+- Tabelle19 = Artikel?  → sonst entsprechenden Namen klicken
+- Tabelle20 = Schnell?  → sonst entsprechenden Namen klicken
+- Tabelle27 = ArtikelDetail? → sonst entsprechenden Namen klicken
+- Tabelle29 = BewPopup? → sonst entsprechenden Namen klicken
+
+=====================================================================

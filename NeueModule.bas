@@ -2046,6 +2046,8 @@ Private Sub ExportArtikelPAMJson(sheetName As String)
 
     Const C_ARTNR       As Integer = 3
     Const C_ARTIKEL     As Integer = 4
+    Const C_EAN         As Integer = 5  ' EAN-Barcode
+    Const C_VK          As Integer = 6  ' Verkaufspreis
     Const C_EINHEIT     As Integer = 9
     Const C_WARENGRUPPE As Integer = 11
 
@@ -2062,6 +2064,7 @@ Private Sub ExportArtikelPAMJson(sheetName As String)
     Dim artName As String
     Dim einheit As String
     Dim gruppe  As String
+    Dim vkVal   As String
 
     For i = 3 To lastRow
         artNr = Trim(CStr(ws.Cells(i, C_ARTNR).Value))
@@ -2071,15 +2074,30 @@ Private Sub ExportArtikelPAMJson(sheetName As String)
         einheit = Trim(CStr(ws.Cells(i, C_EINHEIT).Value))
         gruppe  = Trim(CStr(ws.Cells(i, C_WARENGRUPPE).Value))
 
+        ' VK-Preis: als Zahl exportieren (Punkt als Dezimaltrennzeichen fuer JSON)
+        Dim vkCell As Variant
+        vkCell = ws.Cells(i, C_VK).Value
+        If IsNumeric(vkCell) And CDbl(vkCell) > 0 Then
+            vkVal = Replace(Format(CDbl(vkCell), "0.00"), ",", ".")
+        Else
+            vkVal = "null"
+        End If
+
         If artName = "" Then GoTo NextRowPAM
 
         If Not isFirst Then json = json & ","
         isFirst = False
 
+        ' Format: ["name","einheit","gruppe",vk,"ean"]
+        Dim eanVal As String
+        eanVal = Trim(CStr(ws.Cells(i, C_EAN).Value))
+
         json = json & "[" & _
             """" & JStrPAM(artName) & """," & _
             """" & JStrPAM(einheit) & """," & _
-            """" & JStrPAM(gruppe) & """" & _
+            """" & JStrPAM(gruppe) & """," & _
+            vkVal & "," & _
+            """" & JStrPAM(eanVal) & """" & _
             "]"
 
 NextRowPAM:

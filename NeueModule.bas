@@ -1890,12 +1890,12 @@ End Sub
 
 
 ' ------------------------------------------------------------
-' Hauptroutine – wird vom Button "GITHUB" aufgerufen
+' Hauptroutine ï¿½ wird vom Button "GITHUB" aufgerufen
 ' ------------------------------------------------------------
 Sub GitHub_Export()
 
     On Error GoTo Fehler
-    ' === KONFIGURATION – hier anpassen falls noetig ===
+    ' === KONFIGURATION ï¿½ hier anpassen falls noetig ===
 Const GIT_DIR     As String = "D:\_KI-Projekte-2026\07_Lagerverwaltung-Excel\Lagerverw. FB300\"
 Const LAGER_SHEET As String = "Schnellansicht"
 ' ===================================================
@@ -1920,6 +1920,9 @@ Const LAGER_SHEET As String = "Schnellansicht"
 
     ' --- 2. Lagerdaten als JSON exportieren ---
     Call ExportLagerJSON(GIT_DIR, LAGER_SHEET)
+
+    ' --- 2b. Artikel-JSON fï¿½r PAM Mobil exportieren (kompaktes Format, UTF-8) ---
+    Call ExportArtikelPAMJson(LAGER_SHEET)
 
     ' --- 3. Git: add -> commit -> push ---
     Dim sh As Object
@@ -2026,6 +2029,105 @@ NextRow:
     Close #fNum
 
 End Sub
+
+
+' ------------------------------------------------------------
+' Exportiert Artikel-Liste fï¿½r PAM Mobil als artikel.json
+' Format: [["Artikelname","Einheit","Warengruppe"], ...]
+' Ziel:   D:\_KI-Projekte-2026\03_PAM-Mobil\artikel.json
+' Kodierung: UTF-8 via ADODB.Stream (Umlaute korrekt!)
+' ------------------------------------------------------------
+Private Sub ExportArtikelPAMJson(sheetName As String)
+
+    Const PAM_DIR As String = "D:\_KI-Projekte-2026\03_PAM-Mobil\"
+
+    Dim ws As Worksheet
+    Set ws = ThisWorkbook.Sheets(sheetName)
+
+    Const C_ARTNR       As Integer = 3
+    Const C_ARTIKEL     As Integer = 4
+    Const C_EAN         As Integer = 5  ' EAN-Barcode
+    Const C_VK          As Integer = 6  ' Verkaufspreis
+    Const C_EINHEIT     As Integer = 9
+    Const C_WARENGRUPPE As Integer = 11
+
+    Dim lastRow As Long
+    lastRow = ws.Cells(ws.Rows.Count, C_ARTNR).End(xlUp).Row
+
+    Dim json    As String
+    Dim isFirst As Boolean
+    isFirst = True
+    json = "["
+
+    Dim i     As Long
+    Dim artNr As String
+    Dim artName As String
+    Dim einheit As String
+    Dim gruppe  As String
+    Dim vkVal   As String
+
+    For i = 3 To lastRow
+        artNr = Trim(CStr(ws.Cells(i, C_ARTNR).Value))
+        If artNr = "" Then GoTo NextRowPAM
+
+        artName = Trim(CStr(ws.Cells(i, C_ARTIKEL).Value))
+        einheit = Trim(CStr(ws.Cells(i, C_EINHEIT).Value))
+        gruppe = Trim(CStr(ws.Cells(i, C_WARENGRUPPE).Value))
+
+        ' VK-Preis: als Zahl exportieren (Punkt als Dezimaltrennzeichen fuer JSON)
+        Dim vkCell As Variant
+        vkCell = ws.Cells(i, C_VK).Value
+        If IsNumeric(vkCell) And CDbl(vkCell) > 0 Then
+            vkVal = Replace(Format(CDbl(vkCell), "0.00"), ",", ".")
+        Else
+            vkVal = "null"
+        End If
+
+        If artName = "" Then GoTo NextRowPAM
+
+        If Not isFirst Then json = json & ","
+        isFirst = False
+
+        ' Format: ["name","einheit","gruppe",vk,"ean"]
+        Dim eanVal As String
+        eanVal = Trim(CStr(ws.Cells(i, C_EAN).Value))
+
+        json = json & "[" & _
+            """" & JStrPAM(artName) & """," & _
+            """" & JStrPAM(einheit) & """," & _
+            """" & JStrPAM(gruppe) & """," & _
+            vkVal & "," & _
+            """" & JStrPAM(eanVal) & """" & _
+            "]"
+
+NextRowPAM:
+    Next i
+
+    json = json & "]"
+
+    ' UTF-8 speichern via ADODB.Stream
+    Dim stm As Object
+    Set stm = CreateObject("ADODB.Stream")
+    stm.Type = 2     ' adTypeText
+    stm.Charset = "UTF-8"
+    stm.Open
+    stm.WriteText json
+    stm.SaveToFile PAM_DIR & "artikel.json", 2  ' adSaveCreateOverWrite
+    stm.Close
+    Set stm = Nothing
+
+End Sub
+
+
+' Hilfsfunktion: String fï¿½r JSON escapen (ohne umgebende Anfï¿½hrungszeichen)
+Private Function JStrPAM(s As String) As String
+    s = Replace(s, "\", "\\")
+    s = Replace(s, """", "\""")
+    s = Replace(s, vbCrLf, " ")
+    s = Replace(s, vbCr, " ")
+    s = Replace(s, vbLf, " ")
+    JStrPAM = s
+End Function
 
 
 ' Hilfsfunktion: Zellwert als JSON-String

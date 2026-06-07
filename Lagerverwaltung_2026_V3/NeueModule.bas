@@ -1457,7 +1457,7 @@ Sub GitHub_Export()
     Dim gitCmd As String
     gitCmd = "cmd /c cd /d """ & GIT_DIR & """" & _
              " && git add -A" & _
-             " && git commit -m """ & commitMsg & """" & _
+             " && (git diff --cached --quiet || git commit -m """ & commitMsg & """)" & _
              " && git push"
     Dim rc As Long: rc = sh.Run(gitCmd, 1, True)
 

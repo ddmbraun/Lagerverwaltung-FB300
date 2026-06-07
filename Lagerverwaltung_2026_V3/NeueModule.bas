@@ -1424,7 +1424,9 @@ End Sub
 Sub GitHub_Export()
     On Error GoTo Fehler
 
-    Const GIT_DIR     As String = "D:\_KI-Projekte-2026\07_Lagerverwaltung-Excel\Lagerverw. FB300\Lagerverwaltung_2026_V3\"
+    ' Pfade dynamisch aus Speicherort der Datei ermitteln - funktioniert egal wo die Datei liegt
+    Dim EXPORT_DIR  As String: EXPORT_DIR = ThisWorkbook.Path & "\"
+    Dim GIT_DIR     As String: GIT_DIR = Left(ThisWorkbook.Path, InStrRev(ThisWorkbook.Path, "\") - 1) & "\"
     Const LAGER_SHEET As String = "Schnellansicht"
 
     ' VBA-Module exportieren
@@ -1438,14 +1440,14 @@ Sub GitHub_Export()
         modName = moduleNames(j)
         For Each vbComp In ThisWorkbook.VBProject.VBComponents
             If vbComp.Name = modName Then
-                vbComp.Export GIT_DIR & modName & ".bas"
+                vbComp.Export EXPORT_DIR & modName & ".bas"
                 Exit For
             End If
         Next vbComp
     Next j
 
     ' Lagerdaten als JSON exportieren
-    Call ExportLagerJSON(GIT_DIR, LAGER_SHEET)
+    Call ExportLagerJSON(EXPORT_DIR, LAGER_SHEET)
 
     ' Git: add -> commit -> push
     Dim sh As Object

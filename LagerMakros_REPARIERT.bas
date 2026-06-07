@@ -813,8 +813,11 @@ Sub Setup_Ausfuehren()
     ' --- InvSuche-Sheet erstellen ---
     InvSuche_Setup True
 
+    ' --- Artikel Toolbar (Shapes + Events) einrichten ---
+    NeueModule.Setup_Artikel_Toolbar
+
     MsgBox "Setup fertig!" & Chr(10) & Chr(10) & _
-           "Artikel-Sheet: Zeile anklicken = markieren, Buttons in Zeile 1 aktiv" & Chr(10) & _
+           "Artikel-Sheet: Buttons in Zeile 3 aktiv (GITHUB, NEUER ARTIKEL, ZU-/ABGANG, ETIKETT, EK ausbl., FILTER LOESCHEN, SCHNELLANSICHT)" & Chr(10) & _
            "Schnellansicht: Suchbegriff + ENTER, Doppelklick LOESCHEN / AKTUALISIEREN" & Chr(10) & _
            "Inventur-Sheet: Doppelklick BEFUELLEN / UEBERNEHMEN", _
            vbInformation, "Setup abgeschlossen"

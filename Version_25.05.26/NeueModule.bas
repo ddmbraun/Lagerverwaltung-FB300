@@ -2147,4 +2147,5 @@ Private Function JStrPAM(s As String) As String
     s = Replace(s, vbCr, " ")
     s = Replace(s, vbLf, " ")
     JStr = """" & s & """"
-End Funct
+End Function
+

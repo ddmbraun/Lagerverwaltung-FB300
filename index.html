@@ -38,10 +38,14 @@
     .detail-label { color: #888; }
     .detail-value { font-weight: 500; text-align: right; max-width: 65%; word-break: break-all; }
 
-    .chips { display: flex; gap: 7px; padding: 8px 12px; overflow-x: auto; background: #fff; border-bottom: 1px solid #dde1e7; -webkit-overflow-scrolling: touch; }
-    .chips::-webkit-scrollbar { display: none; }
-    .chip { flex-shrink: 0; padding: 5px 13px; border-radius: 20px; border: 1.5px solid #c5cad3; background: #fff; font-size: 13px; cursor: pointer; white-space: nowrap; }
-    .chip.active { background: #1c3f6e; color: #fff; border-color: #1c3f6e; }
+    .group-bar { display: flex; gap: 8px; align-items: center; padding: 8px 12px; background: #fff; border-bottom: 1px solid #dde1e7; }
+    .group-bar label { font-size: 13px; color: #4a5268; flex-shrink: 0; }
+    #group-select { flex: 1; padding: 9px 12px; border: 1.5px solid #c5cad3; border-radius: 10px; font-size: 15px; background: #f7f8fa; color: #1d1d1f; outline: none; -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a5268' stroke-width='2' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; }
+    #group-select.filter-on { border-color: #1c3f6e; background-color: #eef6ff; font-weight: 600; }
+    #group-reset { flex-shrink: 0; width: 36px; height: 38px; border: none; border-radius: 10px; background: #eef1f6; color: #4a5268; font-size: 15px; cursor: pointer; display: none; }
+    #group-reset.visible { display: block; }
 
     #info { padding: 7px 14px; font-size: 12px; color: #6e7480; }
     #results { padding: 4px 12px 80px; }
@@ -80,8 +84,12 @@
   <button id="scan-btn">📷</button>
 </div>
 
-<div class="chips" id="chips">
-  <button class="chip active" data-group="">Alle</button>
+<div class="group-bar">
+  <label for="group-select">🏷️</label>
+  <select id="group-select">
+    <option value="">Alle Warengruppen</option>
+  </select>
+  <button id="group-reset" title="Filter aufheben">✕</button>
 </div>
 
 <div id="info"></div>
@@ -158,17 +166,22 @@ function applyData(raw, fromCache) {
     return d.artnr && d.artnr !== 'Art.-Nr.' && d.nr !== '#';
   });
 
-  // Chips neu aufbauen (nur beim ersten Mal)
-  var bar = document.getElementById('chips');
-  if (bar.children.length <= 1) {
-    var groups = [];
+  // Warengruppen-Dropdown neu aufbauen (nur beim ersten Mal)
+  var sel = document.getElementById('group-select');
+  if (sel.options.length <= 1) {
+    var counts = {};
     data.forEach(function(d) {
-      if (d.warengruppe && groups.indexOf(d.warengruppe) === -1) groups.push(d.warengruppe);
+      if (d.warengruppe) counts[d.warengruppe] = (counts[d.warengruppe] || 0) + 1;
     });
-    groups.sort().forEach(function(g) {
-      var btn = document.createElement('button');
-      btn.className = 'chip'; btn.dataset.group = g; btn.textContent = g;
-      bar.appendChild(btn);
+    var groups = Object.keys(counts).sort(function(a, b) {
+      return a.localeCompare(b, 'de');
+    });
+    sel.options[0].textContent = 'Alle Warengruppen (' + data.length + ')';
+    groups.forEach(function(g) {
+      var opt = document.createElement('option');
+      opt.value = g;
+      opt.textContent = g + ' (' + counts[g] + ')';
+      sel.appendChild(opt);
     });
   }
 
@@ -267,13 +280,22 @@ document.getElementById('detail-overlay').addEventListener('click', function(e) 
   if (e.target === this) this.classList.remove('active');
 });
 
-// ── Filter-Chips ─────────────────────────────────────────
-document.getElementById('chips').addEventListener('click', function(e) {
-  var chip = e.target.closest('.chip');
-  if (!chip) return;
-  document.querySelectorAll('.chip').forEach(function(c) { c.classList.remove('active'); });
-  chip.classList.add('active');
-  activeGroup = chip.dataset.group;
+// ── Warengruppen-Dropdown ────────────────────────────────
+var groupSelect = document.getElementById('group-select');
+var groupReset  = document.getElementById('group-reset');
+
+groupSelect.addEventListener('change', function() {
+  activeGroup = this.value;
+  this.classList.toggle('filter-on', !!activeGroup);
+  groupReset.classList.toggle('visible', !!activeGroup);
+  render();
+});
+
+groupReset.addEventListener('click', function() {
+  groupSelect.value = '';
+  activeGroup = '';
+  groupSelect.classList.remove('filter-on');
+  this.classList.remove('visible');
   render();
 });
 

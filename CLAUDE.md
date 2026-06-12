@@ -17,7 +17,7 @@ nur **Exporte** (erzeugt vom GITHUB-Button). Maßgeblich ist immer der Stand in 
 | `LagerMakros.bas` | Kern: Suche, ZuAbgang, Etikett (Zebra GK420d), Inventur, Setup_Ausfuehren |
 | `NeueModule.bas` | Toolbar, GitHub_Export (AKTIV), ArtikelDetail, SchnellDetail, BewPopup, Inv-Sheets |
 | `NeuArtikelModul.bas` | Neuer-Artikel-Formular, Suche & Scanner, EAN-Generator (Prefix 200) |
-| `ArtikelFix.bas` | ⚠ DEFEKT/abgeschnitten (endet Z. 286) – NICHT importieren, frisch exportieren! |
+| `ArtikelFix.bas` | ⚠ DEFEKT + Altlast (V2-Suche, auch in Mappe abgeschnitten) – Modul & Datei entfernen |
 | `DuplikatPruefer.bas` | Duplikat-Prüfung – ⚠ passt nicht zum V3-Layout (Header in Z. 2 erwartet) |
 | `CSV_Import.bas` | Import MF_DACH_MAT.csv (Semikolon, 37 Felder, VK = EK × 1,35) |
 | `GitHub_Export_NEU.bas` | ⚠ VERALTET (hartkodierter alter Pfad) – nicht verwenden |
@@ -75,7 +75,7 @@ nur **Exporte** (erzeugt vom GITHUB-Button). Maßgeblich ist immer der Stand in 
 |---|---|---|
 | K1 | GitHub-Upload defekt (Repo im Lösch-Ordner, GIT_DIR falsch) | ✅ BEHOBEN 12.06. – .git in Projektordner, GIT_DIR=ThisWorkbook.Path, FSO-Check, Push erfolgreich |
 | K2 | lager.json Spalten-Mapping falsch, EK landet im Feld „ean", kein UTF-8 | ✅ BEHOBEN 12.06. – Export aus Artikel-Sheet ab Z. 5, UTF-8, Testlauf verifiziert |
-| K3 | ArtikelFix.bas abgeschnitten | ⬜ in Klärung – Datei blieb nach Export unverändert: Modul fehlt evtl. in der Mappe oder ist dort ebenfalls abgeschnitten |
+| K3 | ArtikelFix.bas abgeschnitten | 🟢 Geklärt 12.06.: Modul ist AUCH in der Mappe abgeschnitten, aber reine V2-Altlast (B1-Suche, in V3 ungenutzt) → Modul + Datei entfernen. ⚠ „ArtikelFix" steht noch in der Exportliste von GitHub_Export – beim nächsten Modul-Update mit rausnehmen (harmlos, wird nur übersprungen) |
 | H1 | Schnellansicht: 3 verschiedene Spalten-Layouts | ⬜ offen |
 | H2 | Leseschleifen ab Zeile 3 statt 5 (Header wird Artikel) | ⬜ offen |
 | H3 | DuplikatPruefer inkompatibel mit V3-Layout | ⬜ offen |

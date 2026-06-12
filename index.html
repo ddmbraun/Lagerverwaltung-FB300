@@ -113,7 +113,7 @@
 </div>
 
 <script>
-var APP_VERSION = 'v2 – Live-Scanner';   // bei jeder Änderung hochzählen!
+var APP_VERSION = 'v3 – Live-Scanner';   // bei jeder Änderung hochzählen!
 var CACHE_KEY = 'lager_data';
 var CACHE_TS  = 'lager_ts';
 
@@ -306,23 +306,37 @@ groupReset.addEventListener('click', function() {
 document.getElementById('q').addEventListener('input', render);
 
 // ── Barcode Scanner: Live-Kamera, Foto als Fallback ──────
+// Mehrere Quellen: schlaegt eine fehl (404/Netz), kommt die naechste dran
+var ZXING_URLS = [
+  'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js',
+  'https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js',
+  'https://unpkg.com/@zxing/browser@latest'
+];
+
+function ladeScript(url) {
+  return new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = url;
+    var t = setTimeout(function() { s.remove(); reject(url); }, 8000);
+    s.onload  = function() { clearTimeout(t); resolve(); };
+    s.onerror = function() { clearTimeout(t); s.remove(); reject(url); };
+    document.head.appendChild(s);
+  });
+}
+
 var zxingReady = null;
 function loadZXing() {
   if (window.ZXingBrowser) return Promise.resolve();
   if (zxingReady) return zxingReady;
-  zxingReady = new Promise(function(resolve, reject) {
-    var s = document.createElement('script');
-    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js';
-    var t = setTimeout(function() {
-      zxingReady = null;
-      reject('Zeitüberschreitung beim Laden der Scan-Bibliothek (Internet prüfen).');
-    }, 10000);
-    s.onload  = function() { clearTimeout(t); resolve(); };
-    s.onerror = function() {
-      clearTimeout(t); zxingReady = null;
-      reject('Scan-Bibliothek konnte nicht geladen werden (Internet prüfen).');
-    };
-    document.head.appendChild(s);
+  zxingReady = ZXING_URLS.reduce(function(kette, url) {
+    return kette.catch(function() { return ladeScript(url); });
+  }, Promise.reject())
+  .then(function() {
+    if (!window.ZXingBrowser) throw new Error('unvollstaendig');
+  })
+  .catch(function() {
+    zxingReady = null;
+    throw 'Scan-Bibliothek konnte aus keiner Quelle geladen werden (Internet prüfen).';
   });
   return zxingReady;
 }

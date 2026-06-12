@@ -87,7 +87,7 @@ Sub ZuAbgang_Buchen()
     Dim artikel  As String: artikel = wsA.Cells(zeile, colArt).Value
     Dim artNr    As String: artNr = wsA.Cells(zeile, colNr).Value
     Dim lagerort As String: lagerort = wsA.Cells(zeile, colLager).Value
-    Dim aktuell  As Double: aktuell = Val(wsA.Cells(zeile, colAnz).Value)
+    Dim aktuell  As Double: aktuell = val(wsA.Cells(zeile, colAnz).Value)
 
     Dim eingabe As String
     eingabe = InputBox( _
@@ -100,7 +100,7 @@ Sub ZuAbgang_Buchen()
         "Zu-/Abgang buchen")
 
     If eingabe = "" Then Exit Sub
-    Dim menge As Double: menge = Val(eingabe)
+    Dim menge As Double: menge = val(eingabe)
     If menge = 0 Then MsgBox "Ungueltige Eingabe.": Exit Sub
 
     Dim typ As String: typ = IIf(menge > 0, "Zugang", "Abgang")
@@ -111,7 +111,7 @@ Sub ZuAbgang_Buchen()
 
     ' Bewegung eintragen
     Dim nRow As Long
-    nRow = wsZ.Cells(wsZ.Rows.Count, 1).End(xlUp).Row + 1
+    nRow = wsZ.Cells(wsZ.Rows.count, 1).End(xlUp).Row + 1
     wsZ.Cells(nRow, 1).Value = Now()
     wsZ.Cells(nRow, 1).NumberFormat = "DD.MM.YYYY HH:MM"
     wsZ.Cells(nRow, 2).Value = ean
@@ -124,7 +124,7 @@ Sub ZuAbgang_Buchen()
 
     ' Bestaende-Sheet aktualisieren
     Dim i As Long
-    For i = 2 To wsB.Cells(wsB.Rows.Count, 2).End(xlUp).Row
+    For i = 2 To wsB.Cells(wsB.Rows.count, 2).End(xlUp).Row
         If wsB.Cells(i, 2).Value = artNr Then
             wsB.Cells(i, 4).Value = neuerBestand
             wsB.Cells(i, 6).Value = Round(neuerBestand * wsA.Cells(zeile, colVK).Value, 2)
@@ -220,29 +220,38 @@ Sub Filter_Loeschen()
     Dim wsA As Worksheet: Set wsA = GetSheet("Artikel")
     If wsA Is Nothing Then Exit Sub
     ' Markierung entfernen
-    If g_LetzteZeile >= 3 Then
+    If g_LetzteZeile >= 5 Then
         wsA.Rows(g_LetzteZeile).Interior.ColorIndex = xlNone
     End If
-    If wsA.AutoFilterMode Then wsA.AutoFilter.ShowAllData
-    wsA.Cells(3, 1).Select
+    If wsA.AutoFilterMode Then wsA.AutoFilterMode = False
+    wsA.Rows("5:50000").Hidden = False
+    Application.EnableEvents = False
+    wsA.Cells(2, 2).Value = ""
+    Application.EnableEvents = True
     g_LetzteZeile = 0
+    Artikel_Anzahl_Anzeigen
 End Sub
 
 ' ================================================================
 '  HILFSFUNKTIONEN
 ' ================================================================
 Function Spalte_Finden(ws As Worksheet, headerName As String) As Long
-    Dim hRow As Long
-    hRow = IIf(InStr(ws.Name, "rtikel") > 0, 2, 1)
-    Dim lastCol As Long
-    lastCol = ws.Cells(hRow, ws.Columns.Count).End(xlToLeft).Column
-    Dim i As Long
-    For i = 1 To lastCol
-        If InStr(1, ws.Cells(hRow, i).Value, headerName, vbTextCompare) > 0 Then
-            Spalte_Finden = i
-            Exit Function
-        End If
-    Next i
+    ' Artikel-Sheet: Zeile 1=Titel, 2=Suchfeld -> ab Zeile 3 suchen (Buttons/Header)
+    ' Alle anderen Sheets: ab Zeile 1 suchen
+    Dim startRow As Long
+    startRow = IIf(InStr(ws.Name, "rtikel") > 0, 3, 1)
+
+    Dim i As Long, r As Long, lastCol As Long
+    For r = startRow To startRow + 5
+        lastCol = ws.Cells(r, ws.Columns.count).End(xlToLeft).Column
+        For i = 1 To lastCol
+            If InStr(1, CStr(ws.Cells(r, i).Value), headerName, vbTextCompare) > 0 Then
+                Spalte_Finden = i
+                Exit Function
+            End If
+        Next i
+    Next r
+
     Spalte_Finden = 0
 End Function
 
@@ -299,12 +308,12 @@ Sub Schnellansicht_Suchen()
     Dim cWG   As Long: cWG = Spalte_Finden(wsA, "WARENGRUPPE")
 
     ' Direkt in Schnellansicht suchen (Spalte 1=EAN, Spalte 2=Artikel)
-    Dim lastSvRow As Long: lastSvRow = wsS.Cells(wsS.Rows.Count, 2).End(xlUp).Row
+    Dim lastSvRow As Long: lastSvRow = wsS.Cells(wsS.Rows.count, 2).End(xlUp).Row
     Dim treffer As Long: treffer = 0
     Dim gefSvZeile As Long: gefSvZeile = 0
 
     ' EAN-Suche: wenn Suchbegriff nur aus Zahlen besteht
-    Dim nurZahlen As Boolean: nurZahlen = (such = CStr(Val(such)) And Val(such) > 0)
+    Dim nurZahlen As Boolean: nurZahlen = (such = CStr(val(such)) And val(such) > 0)
 
     Dim i As Long, w As Integer, passt As Boolean
     For i = 4 To lastSvRow
@@ -331,7 +340,7 @@ Sub Schnellansicht_Suchen()
 
     ' Genau 1 Treffer: Popup (Daten aus Schnellansicht + Artikel-Sheet)
     If treffer = 1 Then
-        Dim anz As Double: anz = Val(wsS.Cells(gefSvZeile, 5).Value)
+        Dim anz As Double: anz = val(wsS.Cells(gefSvZeile, 5).Value)
         Dim bestand As String
         If anz = 0 Then
             bestand = "0  !! NACHBESTELLUNG !!"
@@ -346,7 +355,7 @@ Sub Schnellansicht_Suchen()
         Dim warengruppe As String: warengruppe = ""
         Dim eanSuch As String: eanSuch = wsS.Cells(gefSvZeile, 1).Value
         Dim j As Long
-        For j = 3 To wsA.Cells(wsA.Rows.Count, cArt).End(xlUp).Row
+        For j = 3 To wsA.Cells(wsA.Rows.count, cArt).End(xlUp).Row
             If wsA.Cells(j, cEAN).Value = eanSuch Then
                 artNr = wsA.Cells(j, cNr).Value
                 lagerort = wsA.Cells(j, cLag).Value
@@ -375,7 +384,7 @@ Sub Schnellansicht_Suchen()
     ' Mehrere Treffer: Zeilen filtern
     Application.ScreenUpdating = False
     If wsS.AutoFilterMode Then wsS.AutoFilterMode = False
-    Dim lastSvRow2 As Long: lastSvRow2 = wsS.Cells(wsS.Rows.Count, 2).End(xlUp).Row
+    Dim lastSvRow2 As Long: lastSvRow2 = wsS.Cells(wsS.Rows.count, 2).End(xlUp).Row
     Dim zSuch As String
     Dim zPasst As Boolean
     For j = 4 To lastSvRow2
@@ -406,7 +415,7 @@ Sub Schnellansicht_FilterLoeschen()
     Application.ScreenUpdating = False
     If wsS.AutoFilterMode Then wsS.AutoFilterMode = False
     Dim lastRow As Long
-    lastRow = wsS.Cells(wsS.Rows.Count, 2).End(xlUp).Row
+    lastRow = wsS.Cells(wsS.Rows.count, 2).End(xlUp).Row
     If lastRow >= 4 Then wsS.Rows("4:" & lastRow).Hidden = False
     wsS.Cells(2, 2).Value = ""
     Application.ScreenUpdating = True
@@ -424,8 +433,8 @@ Sub Schnellansicht_Aktualisieren()
 
     ' Zuerst alle Zeilen einblenden, dann loeschen
     Dim lastSvRow As Long
-    lastSvRow = wsS.Cells(wsS.Rows.Count, 2).End(xlUp).Row
-    If lastSvRow < 4 Then lastSvRow = wsS.UsedRange.Rows.Count
+    lastSvRow = wsS.Cells(wsS.Rows.count, 2).End(xlUp).Row
+    If lastSvRow < 4 Then lastSvRow = wsS.UsedRange.Rows.count
     If lastSvRow >= 4 Then
         wsS.Rows("4:" & lastSvRow).Hidden = False
         wsS.Range("A4:F" & lastSvRow).ClearContents
@@ -444,7 +453,7 @@ Sub Schnellansicht_Aktualisieren()
         Exit Sub
     End If
 
-    Dim lastRow As Long: lastRow = wsA.Cells(wsA.Rows.Count, colArt).End(xlUp).Row
+    Dim lastRow As Long: lastRow = wsA.Cells(wsA.Rows.count, colArt).End(xlUp).Row
     Dim sRow As Long: sRow = 4
     Dim i As Long
     For i = 3 To lastRow
@@ -484,20 +493,20 @@ Sub NeuerArtikel()
 
     Dim vkStr As String
     vkStr = InputBox("VK-Preis (z.B. 9.99):", "Neuer Artikel 3/5", "0.00")
-    Dim vkPreis As Double: vkPreis = Val(Replace(vkStr, ",", "."))
+    Dim vkPreis As Double: vkPreis = val(Replace(vkStr, ",", "."))
 
     Dim ekStr As String
     ekStr = InputBox("EK-Preis (z.B. 5.00):", "Neuer Artikel 3/5", "0.00")
-    Dim ekPreis As Double: ekPreis = Val(Replace(ekStr, ",", "."))
+    Dim ekPreis As Double: ekPreis = val(Replace(ekStr, ",", "."))
 
     Dim mwstStr As String
     mwstStr = InputBox("MwSt % (Standard: 19):", "Neuer Artikel 4/5", "19")
-    Dim mwst As Double: mwst = Val(mwstStr)
+    Dim mwst As Double: mwst = val(mwstStr)
     If mwst = 0 Then mwst = 19
 
     Dim anzStr As String
     anzStr = InputBox("Anfangsbestand:", "Neuer Artikel 4/5", "0")
-    Dim anzahl As Double: anzahl = Val(anzStr)
+    Dim anzahl As Double: anzahl = val(anzStr)
 
     Dim einheit As String
     einheit = InputBox("Einheit (Stk / Pkg / m ...):", "Neuer Artikel 4/5", "Stk")
@@ -522,7 +531,7 @@ Sub NeuerArtikel()
 
     ' --- Neue Zeile einfuegen ---
     Dim nRow As Long
-    nRow = wsA.Cells(wsA.Rows.Count, colArt2).End(xlUp).Row + 1
+    nRow = wsA.Cells(wsA.Rows.count, colArt2).End(xlUp).Row + 1
 
     If colEAN2 > 0 Then wsA.Cells(nRow, colEAN2).Value = ean
     If colEAN2 > 0 Then wsA.Cells(nRow, colEAN2).NumberFormat = "@"
@@ -539,7 +548,7 @@ Sub NeuerArtikel()
     ' --- Bestaende aktualisieren ---
     If Not wsB Is Nothing Then
         Dim bRow As Long
-        bRow = wsB.Cells(wsB.Rows.Count, 3).End(xlUp).Row + 1
+        bRow = wsB.Cells(wsB.Rows.count, 3).End(xlUp).Row + 1
         wsB.Cells(bRow, 1).Value = ean
         wsB.Cells(bRow, 2).Value = artNr
         wsB.Cells(bRow, 3).Value = artName
@@ -683,7 +692,7 @@ Sub Inventur_Setup(Optional silent As Boolean = False)
         End If
     Next ws
     If wsI Is Nothing Then
-        Set wsI = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.Count))
+        Set wsI = ThisWorkbook.Sheets.Add(After:=ThisWorkbook.Sheets(ThisWorkbook.Sheets.count))
         wsI.Name = "Inventur"
     End If
 
@@ -846,10 +855,10 @@ Sub Inventur_Suchen()
     Dim colAnz As Long: colAnz = Spalte_Finden(wsA, "ANZAHL")
     If colArt = 0 Then Exit Sub
 
-    Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.Count, colArt).End(xlUp).Row
+    Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.count, colArt).End(xlUp).Row
     Dim treffer As Long: treffer = 0
     Dim gefZeile As Long: gefZeile = 0
-    Dim nurZahlen As Boolean: nurZahlen = (such = CStr(Val(such)) And Val(such) > 0)
+    Dim nurZahlen As Boolean: nurZahlen = (such = CStr(val(such)) And val(such) > 0)
 
     Dim i As Long
     For i = 3 To lastA
@@ -894,10 +903,10 @@ Sub Inventur_Eintragen()
     If mengeStr = "" Then
         MsgBox "Bitte Menge eingeben.", vbExclamation: Exit Sub
     End If
-    Dim menge As Double: menge = Val(mengeStr)
+    Dim menge As Double: menge = val(mengeStr)
 
     ' Artikel in Liste (ab Zeile INV_DATEN_START) suchen
-    Dim lastI As Long: lastI = wsI.Cells(wsI.Rows.Count, 3).End(xlUp).Row
+    Dim lastI As Long: lastI = wsI.Cells(wsI.Rows.count, 3).End(xlUp).Row
     Dim gefunden As Boolean: gefunden = False
     Dim i As Long
     For i = INV_DATEN_START To lastI
@@ -917,7 +926,7 @@ Sub Inventur_Eintragen()
         Dim colLag As Long: colLag = Spalte_Finden(wsA, "LAGERORT")
         Dim colEK  As Long: colEK = Spalte_Finden(wsA, "EK-PREIS")
         Dim colAnz As Long: colAnz = Spalte_Finden(wsA, "ANZAHL")
-        Dim lastA  As Long: lastA = wsA.Cells(wsA.Rows.Count, colArt).End(xlUp).Row
+        Dim lastA  As Long: lastA = wsA.Cells(wsA.Rows.count, colArt).End(xlUp).Row
         Dim nRow   As Long
         If lastI < INV_DATEN_START Then nRow = INV_DATEN_START Else nRow = lastI + 1
         Dim j As Long
@@ -960,7 +969,7 @@ Sub Inventur_Befuellen()
 
     Application.ScreenUpdating = False
 
-    Dim lastI As Long: lastI = wsI.Cells(wsI.Rows.Count, 3).End(xlUp).Row
+    Dim lastI As Long: lastI = wsI.Cells(wsI.Rows.count, 3).End(xlUp).Row
     If lastI >= INV_DATEN_START Then wsI.Range("A" & INV_DATEN_START & ":J" & lastI).Clear
 
     Dim colEAN As Long: colEAN = Spalte_Finden(wsA, "EAN13")
@@ -970,7 +979,7 @@ Sub Inventur_Befuellen()
     Dim colAnz As Long: colAnz = Spalte_Finden(wsA, "ANZAHL")
     If colArt = 0 Then Application.ScreenUpdating = True: Exit Sub
 
-    Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.Count, colArt).End(xlUp).Row
+    Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.count, colArt).End(xlUp).Row
     Dim sRow As Long: sRow = INV_DATEN_START
     Dim nr As Long: nr = 1
     Dim hellgrau As Long: hellgrau = RGB(242, 242, 242)
@@ -1028,14 +1037,14 @@ Sub Inventur_BestaendeUebernehmen()
     If colEAN = 0 Or colAnz = 0 Then Exit Sub
 
     Dim updated As Long: updated = 0
-    Dim lastI As Long: lastI = wsI.Cells(wsI.Rows.Count, 3).End(xlUp).Row
-    Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.Count, colEAN).End(xlUp).Row
+    Dim lastI As Long: lastI = wsI.Cells(wsI.Rows.count, 3).End(xlUp).Row
+    Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.count, colEAN).End(xlUp).Row
 
     Dim i As Long, j As Long
     For i = INV_DATEN_START To lastI
         If wsI.Cells(i, 7).Value <> "" Then
             Dim eanI As String: eanI = CStr(wsI.Cells(i, 2).Value)
-            Dim gezaehlt As Double: gezaehlt = Val(wsI.Cells(i, 7).Value)
+            Dim gezaehlt As Double: gezaehlt = val(wsI.Cells(i, 7).Value)
             For j = 3 To lastA
                 If CStr(wsA.Cells(j, colEAN).Value) = eanI Then
                     wsA.Cells(j, colAnz).Value = gezaehlt
@@ -1331,7 +1340,7 @@ Sub InvSuche_Suchen()
 
     Dim such As String: such = Trim(wsIS.Cells(2, 2).Value)
 
-    Dim lastRow As Long: lastRow = wsIS.Cells(wsIS.Rows.Count, 3).End(xlUp).Row
+    Dim lastRow As Long: lastRow = wsIS.Cells(wsIS.Rows.count, 3).End(xlUp).Row
     If lastRow >= 4 Then
         wsIS.Range("A4:H" & lastRow).ClearContents
         Dim rr As Long
@@ -1358,8 +1367,8 @@ Sub InvSuche_Suchen()
     If colArt = 0 Then Application.ScreenUpdating = True: Exit Sub
 
     Dim woerter() As String: woerter = Split(LCase(such), " ")
-    Dim nurZahlen As Boolean: nurZahlen = (such = CStr(Val(such)) And Val(such) > 0)
-    Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.Count, colArt).End(xlUp).Row
+    Dim nurZahlen As Boolean: nurZahlen = (such = CStr(val(such)) And val(such) > 0)
+    Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.count, colArt).End(xlUp).Row
     Dim sRow As Long: sRow = 4
     Dim nr As Long: nr = 1
     Dim hellgrauS As Long: hellgrauS = RGB(242, 242, 242)
@@ -1427,7 +1436,7 @@ Sub InvSuche_FilterLoeschen()
     If wsIS Is Nothing Then Exit Sub
     Application.ScreenUpdating = False
     Application.EnableEvents = False
-    Dim lastRow As Long: lastRow = wsIS.Cells(wsIS.Rows.Count, 3).End(xlUp).Row
+    Dim lastRow As Long: lastRow = wsIS.Cells(wsIS.Rows.count, 3).End(xlUp).Row
     If lastRow >= 4 Then
         wsIS.Range("A4:H" & lastRow).ClearContents
         Dim rr As Long
@@ -1458,7 +1467,7 @@ Sub InvSuche_ArtikelWaehlen(listZeile As Long)
     If wsA Is Nothing Or wsIS Is Nothing Then Exit Sub
     If Trim(CStr(wsIS.Cells(listZeile, 3).Value)) = "" Then Exit Sub
 
-    g_InvSucheArtikelZeile = Val(wsIS.Cells(listZeile, 8).Value)
+    g_InvSucheArtikelZeile = val(wsIS.Cells(listZeile, 8).Value)
     If g_InvSucheArtikelZeile = 0 Then Exit Sub
 
     Dim colEAN  As Long: colEAN = Spalte_Finden(wsA, "EAN13")
@@ -1472,7 +1481,7 @@ Sub InvSuche_ArtikelWaehlen(listZeile As Long)
     Dim az As Long: az = g_InvSucheArtikelZeile
 
     ' Zeile hervorheben
-    Dim lastRow As Long: lastRow = wsIS.Cells(wsIS.Rows.Count, 3).End(xlUp).Row
+    Dim lastRow As Long: lastRow = wsIS.Cells(wsIS.Rows.count, 3).End(xlUp).Row
     Dim r As Long
     For r = 4 To lastRow
         If r = listZeile Then
@@ -1520,7 +1529,7 @@ Sub InvSuche_Eintragen(artName As String, mengeStr As String)
     If wsA Is Nothing Then Exit Sub
     If g_InvSucheArtikelZeile = 0 Then Exit Sub
 
-    Dim menge As Double: menge = Val(mengeStr)
+    Dim menge As Double: menge = val(mengeStr)
     Dim az As Long: az = g_InvSucheArtikelZeile
 
     If Not wsI Is Nothing Then
@@ -1529,7 +1538,7 @@ Sub InvSuche_Eintragen(artName As String, mengeStr As String)
         Dim colLag_I As Long: colLag_I = Spalte_Finden(wsA, "LAGERORT")
         Dim colEK_I  As Long: colEK_I = Spalte_Finden(wsA, "EK-PREIS")
         Dim colAnz_I As Long: colAnz_I = Spalte_Finden(wsA, "ANZAHL")
-        Dim lastInv As Long: lastInv = wsI.Cells(wsI.Rows.Count, 3).End(xlUp).Row
+        Dim lastInv As Long: lastInv = wsI.Cells(wsI.Rows.count, 3).End(xlUp).Row
         Dim gefunden As Boolean: gefunden = False
         Dim ii As Long
         For ii = INV_DATEN_START To lastInv
@@ -1570,13 +1579,140 @@ Sub Spalten_Anzeigen()
             s = s & "Spalte " & i & ": " & wsA.Cells(2, i).Value & Chr(10)
         End If
     Next i
-    MsgBox s, vbInformation, "Artikel-Spalten"
+    MsgBox s, vbInformation, "Spaltendiagnose"
 End Sub
 
- _
- _
- _
- _
- _
- _
+' ================================================================
+'  ARTIKEL-ZEILE MARKIEREN (aufgerufen aus Worksheet_SelectionChange)
+' ================================================================
+Sub Artikel_Zeile_Markieren(ByVal Target As Range)
+    Dim ws As Worksheet: Set ws = Target.Worksheet
+    If g_LetzteZeile >= 5 Then
+        ws.Rows(g_LetzteZeile).Interior.ColorIndex = xlNone
+    End If
+    g_LetzteZeile = Target.Row
+    ws.Rows(Target.Row).Interior.Color = RGB(255, 255, 153)
+End Sub
 
+' ================================================================
+'  ARTIKEL SUCHEN (Button-Wrapper, liest Suchfeld B2)
+' ================================================================
+Sub Artikel_Suchen()
+    Dim wsA As Worksheet: Set wsA = GetSheet("Artikel")
+    If wsA Is Nothing Then Exit Sub
+    Dim such As String: such = Trim(CStr(wsA.Cells(2, 2).Value))
+    If such = "" Then
+        Artikel_Suche_Leeren
+        Exit Sub
+    End If
+    Application.ScreenUpdating = False
+
+    ' --- Spalten dynamisch finden ---
+    Dim cArt  As Long: cArt = Spalte_Finden(wsA, "ARTIKEL")
+    Dim cEAN  As Long: cEAN = Spalte_Finden(wsA, "EAN")
+    Dim cNr   As Long: cNr = Spalte_Finden(wsA, "ARTIKELNR")
+    Dim cLag  As Long: cLag = Spalte_Finden(wsA, "LAGERORT")
+    Dim cWgr  As Long: cWgr = Spalte_Finden(wsA, "WARENGRUPPE")
+    If cArt = 0 Then cArt = Spalte_Finden(wsA, "Artikel")
+    If cArt = 0 Then
+        Application.ScreenUpdating = True
+        MsgBox "Spalte 'Artikel' nicht gefunden!", vbExclamation
+        Exit Sub
+    End If
+
+    ' --- Erst ALLE Zeilen einblenden, dann lastRow berechnen ---
+    wsA.Rows("5:50000").Hidden = False
+    If wsA.AutoFilterMode Then wsA.AutoFilterMode = False
+    Dim lastRow As Long: lastRow = wsA.Cells(wsA.Rows.count, cArt).End(xlUp).Row
+    If lastRow < 5 Then
+        Application.ScreenUpdating = True
+        Exit Sub
+    End If
+
+    ' --- Suchmodus: Zahlen = EAN/ArtikelNr, Text = nur Artikelname ---
+    Dim nurZahlen As Boolean: nurZahlen = IsNumeric(such) And Len(such) > 0
+    Dim woerter() As String: woerter = Split(LCase(such), " ")
+    Dim treffer As Long: treffer = 0
+    Dim i As Long, w As Integer, passt As Boolean, suchIn As String
+
+    For i = 5 To lastRow
+        If Trim(CStr(wsA.Cells(i, cArt).Value)) = "" Then
+            wsA.Rows(i).Hidden = True
+        Else
+            If nurZahlen Then
+                ' Zahlensuche: EAN + Artikelnummer
+                suchIn = ""
+                If cEAN > 0 Then suchIn = suchIn & " " & LCase(CStr(wsA.Cells(i, cEAN).Value))
+                If cNr > 0 Then suchIn = suchIn & " " & LCase(CStr(wsA.Cells(i, cNr).Value))
+            Else
+                ' Textsuche: NUR Artikelname (keine Lagerort/Warengruppe-Falstreffer)
+                suchIn = LCase(CStr(wsA.Cells(i, cArt).Value))
+            End If
+
+            passt = True
+            For w = 0 To UBound(woerter)
+                If Trim(woerter(w)) <> "" Then
+                    If InStr(suchIn, Trim(woerter(w))) = 0 Then
+                        passt = False: Exit For
+                    End If
+                End If
+            Next w
+            wsA.Rows(i).Hidden = Not passt
+            If passt Then treffer = treffer + 1
+        End If
+    Next i
+
+    ' Trefferzahl im Shape anzeigen
+    On Error Resume Next
+    wsA.Shapes("trefferAnzeige").TextFrame.Characters.Text = treffer & " Treffer"
+    On Error GoTo 0
+    Application.ScreenUpdating = True
+End Sub
+
+' ================================================================
+'  ARTIKEL GESAMTANZAHL (zeigt alle Artikel im trefferAnzeige-Shape)
+' ================================================================
+Sub Artikel_Anzahl_Anzeigen()
+    Dim wsA As Worksheet: Set wsA = GetSheet("Artikel")
+    If wsA Is Nothing Then Exit Sub
+    Dim cArt As Long: cArt = Spalte_Finden(wsA, "ARTIKEL")
+    If cArt = 0 Then Exit Sub
+    wsA.Rows("5:50000").Hidden = False
+    If wsA.AutoFilterMode Then wsA.AutoFilterMode = False
+    Dim lastRow As Long: lastRow = wsA.Cells(wsA.Rows.count, cArt).End(xlUp).Row
+    Dim gesamt As Long: gesamt = 0
+    Dim i As Long
+    For i = 5 To lastRow
+        If Trim(CStr(wsA.Cells(i, cArt).Value)) <> "" Then gesamt = gesamt + 1
+    Next i
+    On Error Resume Next
+    wsA.Shapes("trefferAnzeige").TextFrame.Characters.Text = gesamt & " Artikel"
+    On Error GoTo 0
+End Sub
+
+' ================================================================
+'  ARTIKEL SUCHE LEEREN
+' ================================================================
+Sub Artikel_Suche_Leeren()
+    Dim wsA As Worksheet: Set wsA = GetSheet("Artikel")
+    If wsA Is Nothing Then Exit Sub
+    Application.EnableEvents = False
+    wsA.Cells(2, 2).Value = ""
+    Application.EnableEvents = True
+    Artikel_Anzahl_Anzeigen
+End Sub
+
+' ================================================================
+'  ARTIKEL AKTUALISIEREN (Sheet neu laden / Anzeige auffrischen)
+' ================================================================
+Sub Artikel_Aktualisieren()
+    Dim wsA As Worksheet: Set wsA = GetSheet("Artikel")
+    If wsA Is Nothing Then Exit Sub
+    Application.ScreenUpdating = False
+    Application.EnableEvents = False
+    wsA.Cells(2, 2).Value = ""
+    Application.EnableEvents = True
+    Artikel_Anzahl_Anzeigen
+    Application.ScreenUpdating = True
+    Application.StatusBar = "Artikel aktualisiert."
+End Sub

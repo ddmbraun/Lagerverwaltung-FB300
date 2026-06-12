@@ -1,0 +1,16 @@
+# Lagerverwaltung FB300 - nicht auf GitHub hochladen:
+
+# Backups (lokal behalten, nicht veroeffentlichen)
+Backup/
+Backup_*/
+
+# Lösch-Kandidaten / altes Repo
+Prüfen bevor löschen/
+Pruefen bevor loeschen/
+
+# Excel-Temposchrott
+~$*
+*.tmp
+
+# Lieferanten-Preisliste (Fremddaten, nicht veroeffentlichen)
+MF_DACH_MAT.csv

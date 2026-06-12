@@ -114,7 +114,7 @@ Sub Etikett_Drucken()
     MsgBox "Etikett kommt noch!", vbInformation
 End Sub
 Sub EK_Toggle()
-    LagerMakros.EK_Ausblenden
+    LagerMakros.EK_Toggle
 End Sub
 Sub Schnellansicht_Oeffnen()
     ThisWorkbook.Sheets("Schnellansicht").Activate
@@ -555,7 +555,7 @@ Sub Setup_NeuerArtikel()
         "Dropdown oder tippen -> Vorschlaege rechts", _
         "19 oder 7", _
         "Stk / Pack / kg ...", _
-        "Barcode scannen oder tippen", _
+        "Barcode scannen, tippen oder Doppelklick=generieren", _
         "Tippen -> Vorschlaege rechts", _
         "Freitext A", _
         "Freitext B", _
@@ -571,7 +571,7 @@ Sub Setup_NeuerArtikel()
         wsNA.Cells(r, 1).Font.Bold = True
         wsNA.Cells(r, 1).Font.Size = 11
         ' Eingabefeld
-        wsNA.Cells(r, 2).Interior.Color = IIf(k Mod 2 = 0, gelb, hellg)
+        wsNA.Cells(r, 2).Interior.Color = gelb
         wsNA.Cells(r, 2).Font.Size = 11
         ' Hinweis
         wsNA.Cells(r, 3).Value = hints(k)
@@ -585,35 +585,51 @@ Sub Setup_NeuerArtikel()
     wsNA.Range("B4").NumberFormat = "@"
     wsNA.Range("B12").NumberFormat = "@"
 
-    ' Zeile 18: Leerzeile
-    wsNA.Rows(18).RowHeight = 10
+    ' Zeile 18: Aufschlag % (berechnet VK automatisch aus EK)
+    wsNA.Cells(18, 1).Value = "Aufschlag %:"
+    wsNA.Cells(18, 1).Font.Bold = True: wsNA.Cells(18, 1).Font.Size = 11
+    wsNA.Cells(18, 2).Interior.Color = gelb
+    wsNA.Cells(18, 2).Font.Size = 11
+    wsNA.Cells(18, 3).Value = "% Aufschlag auf EK -> VK wird automatisch berechnet"
+    wsNA.Cells(18, 3).Font.Italic = True
+    wsNA.Cells(18, 3).Font.Size = 9
+    wsNA.Cells(18, 3).Font.Color = RGB(89, 89, 89)
+    wsNA.Rows(18).RowHeight = 22
 
-    ' Zeile 19: Buttons
-    wsNA.Cells(19, 1).Value = "SPEICHERN  (Doppelklick!)"
-    wsNA.Cells(19, 1).Font.Bold = True: wsNA.Cells(19, 1).Font.Size = 12
-    wsNA.Cells(19, 1).Font.Color = RGB(255, 255, 255)
-    wsNA.Cells(19, 1).Interior.Color = gruen
-    wsNA.Cells(19, 1).HorizontalAlignment = xlCenter
-    wsNA.Cells(19, 2).Value = "FELDER LEEREN  (Doppelklick!)"
-    wsNA.Cells(19, 2).Font.Bold = True: wsNA.Cells(19, 2).Font.Size = 12
-    wsNA.Cells(19, 2).Font.Color = RGB(255, 255, 255)
-    wsNA.Cells(19, 2).Interior.Color = RGB(192, 0, 0)
-    wsNA.Cells(19, 2).HorizontalAlignment = xlCenter
-    wsNA.Rows(19).RowHeight = 28
+    ' Zeile 19: Leerzeile
+    wsNA.Rows(19).RowHeight = 8
+
+    ' Zeile 20: Buttons (je eine Spalte, kein Merge)
+    wsNA.Cells(20, 1).Value = "SPEICHERN  (Doppelklick!)"
+    wsNA.Cells(20, 1).Font.Bold = True: wsNA.Cells(20, 1).Font.Size = 11
+    wsNA.Cells(20, 1).Font.Color = RGB(255, 255, 255)
+    wsNA.Cells(20, 1).Interior.Color = gruen
+    wsNA.Cells(20, 1).HorizontalAlignment = xlCenter
+    wsNA.Cells(20, 1).VerticalAlignment = xlCenter
+    wsNA.Cells(20, 2).Value = "FELDER LEEREN  (Doppelklick!)"
+    wsNA.Cells(20, 2).Font.Bold = True: wsNA.Cells(20, 2).Font.Size = 11
+    wsNA.Cells(20, 2).Font.Color = RGB(255, 255, 255)
+    wsNA.Cells(20, 2).Interior.Color = RGB(192, 0, 0)
+    wsNA.Cells(20, 2).HorizontalAlignment = xlCenter
+    wsNA.Cells(20, 2).VerticalAlignment = xlCenter
+    wsNA.Rows(20).RowHeight = 28
 
     ' Spaltenbreiten
-    wsNA.Columns(1).ColumnWidth = 18
+    wsNA.Columns(1).ColumnWidth = 28
     wsNA.Columns(2).ColumnWidth = 35
     wsNA.Columns(3).ColumnWidth = 35
     wsNA.Columns(4).ColumnWidth = 25  ' Vorschlaege
     wsNA.Columns(5).ColumnWidth = 1   ' Hilfsspalte Warengruppen
     wsNA.Columns(6).ColumnWidth = 1   ' Hilfsspalte Attribute
 
-    ' Zeile 20: Vorschlags-Ueberschrift
+    ' Vorschlags-Ueberschrift (D4)
     wsNA.Cells(4, 4).Value = "< Doppelklick auf Vorschlag zum Uebernehmen"
     wsNA.Cells(4, 4).Font.Italic = True
     wsNA.Cells(4, 4).Font.Color = RGB(0, 70, 127)
     wsNA.Cells(4, 4).Font.Size = 9
+
+    ' Dropdowns einrichten (Warengruppe, Lagerort, MwSt)
+    DropdownsEinrichten
 
     ' Blatt verstecken (wie SchnellDetail)
     wsNA.Visible = xlSheetHidden
@@ -625,32 +641,7 @@ Sub Setup_NeuerArtikel()
     Dim cm As Object: Set cm = vbComp.CodeModule
     If cm.CountOfLines > 0 Then cm.DeleteLines 1, cm.CountOfLines
 
-    Dim c As String: c = ""
-    c = c & "Private Sub Worksheet_Change(ByVal Target As Range)" & Chr(10)
-    c = c & "    Dim suchZellen As Variant" & Chr(10)
-    c = c & "    suchZellen = Array(""$B$8"", ""$B$9"", ""$B$10"", ""$B$13"")" & Chr(10)
-    c = c & "    Dim istSuch As Boolean: istSuch = False" & Chr(10)
-    c = c & "    Dim v As Variant" & Chr(10)
-    c = c & "    For Each v In suchZellen" & Chr(10)
-    c = c & "        If Target.Address = v Then istSuch = True" & Chr(10)
-    c = c & "    Next v" & Chr(10)
-    c = c & "    If Not istSuch Then Exit Sub" & Chr(10)
-    c = c & "    Application.EnableEvents = False" & Chr(10)
-    c = c & "    NeuArtikelModul.NeuerArtikel_Vorschlaege Target" & Chr(10)
-    c = c & "    Application.EnableEvents = True" & Chr(10)
-    c = c & "End Sub" & Chr(10)
-    c = c & "Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)" & Chr(10)
-    c = c & "    If Target.Address = ""$A$19"" Then" & Chr(10)
-    c = c & "        Cancel = True: NeuArtikelModul.NeuerArtikel_Speichern: Exit Sub" & Chr(10)
-    c = c & "    End If" & Chr(10)
-    c = c & "    If Target.Address = ""$B$19"" Then" & Chr(10)
-    c = c & "        Cancel = True: NeuArtikelModul.NeuerArtikel_FelderLeeren: Exit Sub" & Chr(10)
-    c = c & "    End If" & Chr(10)
-    c = c & "    If Target.Column = 4 And Target.Row >= 5 And Target.Row <= 25 Then" & Chr(10)
-    c = c & "        Cancel = True" & Chr(10)
-    c = c & "        NeuArtikelModul.NeuerArtikel_VorschlagUebernehmen Target" & Chr(10)
-    c = c & "    End If" & Chr(10)
-    c = c & "End Sub" & Chr(10)
+    Dim c As String: c = NeuArtikelModul.NeuerArtikel_EventCode()
     cm.AddFromString c
     On Error GoTo 0
 End Sub
@@ -758,6 +749,13 @@ Sub NeuerArtikel_Speichern()
         Exit Sub
     End If
 
+    ' EAN13 ist Pflichtfeld
+    If Trim(CStr(wsNA.Range("B12").Value)) = "" Then
+        MsgBox "EAN13 ist Pflichtfeld!" & Chr(10) & "Bitte Barcode scannen oder eingeben.", vbExclamation
+        wsNA.Range("B12").Select
+        Exit Sub
+    End If
+
     ' Spalten finden
     Dim cEAN  As Long: cEAN = LagerMakros.Spalte_Finden(wsA, "EAN13")
     Dim cArt  As Long: cArt = LagerMakros.Spalte_Finden(wsA, "ARTIKEL")
@@ -776,12 +774,15 @@ Sub NeuerArtikel_Speichern()
     ' Neue Zeile
     Dim nextRow As Long: nextRow = wsA.Cells(wsA.Rows.count, cArt).End(xlUp).Row + 1
 
-    ' Format von Zeile 3 kopieren (Farben/Format)
-    On Error Resume Next
-    wsA.Rows(3).Copy
-    wsA.Rows(nextRow).PasteSpecial Paste:=xlPasteFormats
-    Application.CutCopyMode = False
-    On Error GoTo 0
+    ' Format von letzter Datenzeile kopieren (Farben/Rahmen fuer einheitliches Aussehen)
+    ' V3: Daten ab Zeile 5, daher nur kopieren wenn vorherige Datenzeile existiert
+    If nextRow > 5 Then
+        On Error Resume Next
+        wsA.Rows(nextRow - 1).Copy
+        wsA.Rows(nextRow).PasteSpecial Paste:=xlPasteFormats
+        Application.CutCopyMode = False
+        On Error GoTo 0
+    End If
 
     ' Werte eintragen
     If cNr > 0 Then wsA.Cells(nextRow, cNr).Value = CStr(wsNA.Range("B4").Value)
@@ -799,4 +800,335 @@ Sub NeuerArtikel_Speichern()
     If cAttr > 0 Then wsA.Cells(nextRow, cAttr).Value = wsNA.Range("B13").Value
     If cTA > 0 Then wsA.Cells(nextRow, cTA).Value = wsNA.Range("B14").Value
     If cTB > 0 Then wsA.Cells(nextRow, cTB).Value = wsNA.Range("B15").Value
-    If cAnz > 0 Then wsA.Cells(ne
+    If cAnz > 0 Then wsA.Cells(nextRow, cAnz).Value = val(wsNA.Range("B16").Value)
+
+    ' Vermerk - in BEMERKUNG-Spalte wenn vorhanden, sonst ignorieren
+    Dim cBem As Long: cBem = LagerMakros.Spalte_Finden(wsA, "BEMERKUNG")
+    If cBem > 0 Then wsA.Cells(nextRow, cBem).Value = wsNA.Range("B17").Value
+
+    ' --- Bestände-Sheet aktualisieren ---
+    Dim wsB As Worksheet: Set wsB = LagerMakros.GetSheet("Best")
+    If Not wsB Is Nothing Then
+        Dim bRow As Long
+        bRow = wsB.Cells(wsB.Rows.count, 3).End(xlUp).Row + 1
+        wsB.Cells(bRow, 1).Value = CStr(wsNA.Range("B12").Value)   ' EAN
+        wsB.Cells(bRow, 2).Value = CStr(wsNA.Range("B4").Value)    ' ArtNr
+        wsB.Cells(bRow, 3).Value = wsNA.Range("B5").Value           ' Artikel
+        wsB.Cells(bRow, 4).Value = val(wsNA.Range("B16").Value)    ' Anzahl
+        wsB.Cells(bRow, 5).Value = wsNA.Range("B11").Value          ' Einheit
+        Dim anzB As Double: anzB = val(wsNA.Range("B16").Value)
+        Dim vkB  As Double: vkB = val(wsNA.Range("B7").Value)
+        wsB.Cells(bRow, 6).Value = Round(anzB * vkB, 2)
+        wsB.Cells(bRow, 10).Value = IIf(anzB = 0, "! Nachbestellung", "OK")
+    End If
+
+    MsgBox "Artikel gespeichert: " & wsNA.Range("B5").Value, vbInformation, "Neuer Artikel"
+
+    ' Felder leeren fuer naechsten Artikel
+    NeuerArtikel_FelderLeeren
+End Sub
+
+
+' ================================================================
+'  Neuer Artikel - Felder leeren
+' ================================================================
+Sub NeuerArtikel_FelderLeeren()
+    Dim wsNA As Worksheet: Set wsNA = LagerMakros.GetSheet("Neuer Artikel")
+    If wsNA Is Nothing Then Exit Sub
+    Application.EnableEvents = False
+    wsNA.Range("B4:B18").ClearContents
+    wsNA.Range("D5:D25").ClearContents
+    wsNA.Range("D5:D25").Interior.ColorIndex = xlNone
+    wsNA.Cells(4, 4).Value = "< Doppelklick auf Vorschlag zum Uebernehmen"
+    wsNA.Cells(4, 4).Font.Bold = False
+    wsNA.Cells(4, 4).Font.Color = RGB(0, 70, 127)
+    ' Standardwerte vorbelegen
+    wsNA.Range("B10").Value = 19
+    wsNA.Range("B11").Value = "Stk"
+    Application.EnableEvents = True
+    wsNA.Range("B4").Select
+End Sub
+
+
+' ================================================================
+'  Neuer Artikel - Sheet oeffnen (sichtbar machen + leeren)
+' ================================================================
+Sub NeuerArtikel_Oeffnen()
+    Dim wsNA As Worksheet: Set wsNA = LagerMakros.GetSheet("Neuer Artikel")
+    If wsNA Is Nothing Then
+        MsgBox "Sheet 'Neuer Artikel' nicht gefunden!" & Chr(10) & _
+               "Bitte NeuArtikelModul.AllesNeuEinrichten() ausfuehren.", vbExclamation
+        Exit Sub
+    End If
+    wsNA.Visible = xlSheetVisible
+    wsNA.Activate
+    NeuerArtikel_FelderLeeren
+End Sub
+
+
+' ================================================================
+'  Neuer Artikel - QuickFix: Column G verstecken + Dropdowns + Events
+' ================================================================
+Sub NeuerArtikel_QuickFix()
+    Dim wsNA As Worksheet: Set wsNA = LagerMakros.GetSheet("Neuer Artikel")
+    If wsNA Is Nothing Then
+        MsgBox "'Neuer Artikel'-Sheet nicht gefunden!", vbExclamation: Exit Sub
+    End If
+
+    ' Column E-G wirklich verstecken
+    wsNA.Columns("E:G").Hidden = True
+
+    ' C12-Hinweis fuer EAN aktualisieren
+    wsNA.Cells(12, 3).Value = "Barcode scannen, tippen oder Doppelklick=generieren"
+    wsNA.Cells(12, 3).Font.Italic = True
+    wsNA.Cells(12, 3).Font.Size = 9
+    wsNA.Cells(12, 3).Font.Color = RGB(89, 89, 89)
+
+    ' Dropdowns neu einrichten (schreibt G-Werte, versteckt G erneut)
+    DropdownsEinrichten
+
+    ' Events reinstallieren
+    On Error GoTo OhneVBProject2
+    Dim vbComp As Object
+    Set vbComp = ThisWorkbook.VBProject.VBComponents(wsNA.CodeName)
+    Dim cm As Object: Set cm = vbComp.CodeModule
+    If cm.CountOfLines > 0 Then cm.DeleteLines 1, cm.CountOfLines
+    cm.AddFromString NeuArtikelModul.NeuerArtikel_EventCode()
+    MsgBox "QuickFix erledigt!" & Chr(10) & Chr(10) & _
+           "- Spalten E-G versteckt" & Chr(10) & _
+           "- EAN: Doppelklick auf B12 (gelbes EAN-Feld)" & Chr(10) & _
+           "- VK-Formel: EK x Aufschlag x MwSt" & Chr(10) & _
+           "- Dropdowns aktualisiert", vbInformation, "QuickFix OK"
+    Exit Sub
+OhneVBProject2:
+    MsgBox "Trust Center nicht aktiviert!" & Chr(10) & Chr(10) & _
+           "Excel -> Datei -> Optionen -> Trust Center ->" & Chr(10) & _
+           "Trust Center-Einstellungen -> Makroeinstellungen ->" & Chr(10) & _
+           "'Zugriff auf VBA-Projektobjektmodell vertrauen' -> AN setzen", _
+           vbExclamation, "Trust Center benoetigt"
+End Sub
+
+
+' ================================================================
+'  Neuer Artikel - Events reinstallieren (ausfuehren falls Buttons tot)
+' ================================================================
+Sub NeuerArtikel_Events_Jetzt()
+    Dim wsNA As Worksheet: Set wsNA = LagerMakros.GetSheet("Neuer Artikel")
+    If wsNA Is Nothing Then
+        MsgBox "'Neuer Artikel'-Sheet nicht gefunden!" & Chr(10) & _
+               "Bitte zuerst Setup_NeuerArtikel ausfuehren.", vbExclamation
+        Exit Sub
+    End If
+    On Error GoTo OhneVBProject
+    Dim vbComp As Object
+    Set vbComp = ThisWorkbook.VBProject.VBComponents(wsNA.CodeName)
+    Dim cm As Object: Set cm = vbComp.CodeModule
+    If cm.CountOfLines > 0 Then cm.DeleteLines 1, cm.CountOfLines
+    cm.AddFromString NeuArtikelModul.NeuerArtikel_EventCode()
+    MsgBox "Events reinstalliert!" & Chr(10) & _
+           "SPEICHERN / FELDER LEEREN / EAN-Generator sind aktiv.", _
+           vbInformation, "Events OK"
+    Exit Sub
+OhneVBProject:
+    MsgBox "Trust Center nicht aktiviert!" & Chr(10) & Chr(10) & _
+           "Excel -> Datei -> Optionen -> Trust Center ->" & Chr(10) & _
+           "Trust Center-Einstellungen -> Makroeinstellungen ->" & Chr(10) & _
+           "'Zugriff auf VBA-Projektobjektmodell vertrauen' -> AN setzen", _
+           vbExclamation, "Trust Center benoetigt"
+End Sub
+
+
+' ================================================================
+'  Neuer Artikel - Event-Code als String (von Setup + Events_Jetzt)
+' ================================================================
+Function NeuerArtikel_EventCode() As String
+    Dim c As String: c = ""
+    ' Worksheet_Change: VK-Berechnung + Vorschlaege
+    c = c & "Private Sub Worksheet_Change(ByVal Target As Range)" & Chr(10)
+    c = c & "    If Target.Address = ""$B$6"" Or Target.Address = ""$B$18"" Or Target.Address = ""$B$10"" Then" & Chr(10)
+    c = c & "        Application.EnableEvents = False" & Chr(10)
+    c = c & "        NeuArtikelModul.NeuerArtikel_VK_Berechnen Me" & Chr(10)
+    c = c & "        Application.EnableEvents = True" & Chr(10)
+    c = c & "        If Target.Address <> ""$B$10"" Then Exit Sub" & Chr(10)
+    c = c & "    End If" & Chr(10)
+    c = c & "    Dim suchZellen As Variant" & Chr(10)
+    c = c & "    suchZellen = Array(""$B$8"", ""$B$9"", ""$B$10"", ""$B$13"")" & Chr(10)
+    c = c & "    Dim istSuch As Boolean: istSuch = False" & Chr(10)
+    c = c & "    Dim v As Variant" & Chr(10)
+    c = c & "    For Each v In suchZellen" & Chr(10)
+    c = c & "        If Target.Address = v Then istSuch = True" & Chr(10)
+    c = c & "    Next v" & Chr(10)
+    c = c & "    If Not istSuch Then Exit Sub" & Chr(10)
+    c = c & "    Application.EnableEvents = False" & Chr(10)
+    c = c & "    NeuArtikelModul.NeuerArtikel_Vorschlaege Target" & Chr(10)
+    c = c & "    Application.EnableEvents = True" & Chr(10)
+    c = c & "End Sub" & Chr(10)
+    ' Worksheet_BeforeDoubleClick: Buttons + EAN + Vorschlaege
+    c = c & "Private Sub Worksheet_BeforeDoubleClick(ByVal Target As Range, Cancel As Boolean)" & Chr(10)
+    c = c & "    If Target.Address = ""$A$20"" Then" & Chr(10)
+    c = c & "        Cancel = True: NeuArtikelModul.NeuerArtikel_Speichern: Exit Sub" & Chr(10)
+    c = c & "    End If" & Chr(10)
+    c = c & "    If Target.Address = ""$B$20"" Then" & Chr(10)
+    c = c & "        Cancel = True: NeuArtikelModul.NeuerArtikel_FelderLeeren: Exit Sub" & Chr(10)
+    c = c & "    End If" & Chr(10)
+    c = c & "    If Target.Row = 12 And Target.Column = 2 Then" & Chr(10)
+    c = c & "        Cancel = True: NeuArtikelModul.NeuerArtikel_EAN_Generieren Me: Exit Sub" & Chr(10)
+    c = c & "    End If" & Chr(10)
+    c = c & "    If Target.Column = 4 And Target.Row >= 5 And Target.Row <= 25 Then" & Chr(10)
+    c = c & "        Cancel = True" & Chr(10)
+    c = c & "        NeuArtikelModul.NeuerArtikel_VorschlagUebernehmen Target" & Chr(10)
+    c = c & "    End If" & Chr(10)
+    c = c & "End Sub" & Chr(10)
+    c = c & Chr(10)
+    ' Worksheet_Deactivate: Sheet auto-verstecken bei Tab-Wechsel
+    c = c & "Private Sub Worksheet_Deactivate()" & Chr(10)
+    c = c & "    On Error Resume Next" & Chr(10)
+    c = c & "    Me.Visible = xlSheetHidden" & Chr(10)
+    c = c & "End Sub" & Chr(10)
+    NeuerArtikel_EventCode = c
+End Function
+
+
+' ================================================================
+'  Neuer Artikel - VK automatisch aus EK + Aufschlag berechnen
+' ================================================================
+Sub NeuerArtikel_VK_Berechnen(ws As Worksheet)
+    Dim ekStr  As String: ekStr = Trim(CStr(ws.Range("B6").Value))
+    Dim aufStr As String: aufStr = Trim(CStr(ws.Range("B18").Value))
+    If ekStr = "" Or aufStr = "" Then Exit Sub
+    Dim ek   As Double: ek = val(ekStr)
+    Dim auf  As Double: auf = val(aufStr)
+       Dim mwst As Double: mwst = val(Trim(CStr(ws.Range("B10").Value)))
+If ek <= 0 Then Exit Sub
+' VK = EK * (1 + Aufschlag%) * (1 + MwSt%)
+ws.Range("B7").Value = Round(ek * (1 + auf / 100) * (1 + mwst / 100), 2)
+End Sub
+
+
+' ================================================================
+'  Neuer Artikel - EAN13 generieren (Praefix 200 = intern)
+' ================================================================
+Sub NeuerArtikel_EAN_Generieren(ws As Worksheet)
+    ' Naechste freie interne EAN (Praefix 200) aus Artikel-Sheet ermitteln
+    Dim wsA  As Worksheet: Set wsA = LagerMakros.GetSheet("Artikel")
+    Dim nextNr As Long: nextNr = 1
+    If Not wsA Is Nothing Then
+        Dim cEAN  As Long: cEAN = LagerMakros.Spalte_Finden(wsA, "EAN13")
+        If cEAN > 0 Then
+            Dim lastRow As Long: lastRow = wsA.Cells(wsA.Rows.count, cEAN).End(xlUp).Row
+            Dim i As Long
+            For i = 5 To lastRow
+                Dim e As String: e = CStr(wsA.Cells(i, cEAN).Value)
+                If Left(e, 3) = "200" And Len(e) = 13 Then
+                    Dim nr As Long: nr = val(Mid(e, 4, 9))
+                    If nr >= nextNr Then nextNr = nr + 1
+                End If
+            Next i
+        End If
+    End If
+
+    ' 12 Ziffern: 200 + 9-stellige Nummer
+    Dim s12 As String: s12 = "200" & Format(nextNr, "000000000")
+
+    ' EAN13-Pruefziffer berechnen
+    Dim summe As Long: summe = 0
+    Dim pos As Integer
+    For pos = 1 To 12
+        Dim d As Long: d = val(Mid(s12, pos, 1))
+        If pos Mod 2 = 0 Then summe = summe + d * 3 Else summe = summe + d
+    Next pos
+    Dim pruef As Long: pruef = (10 - (summe Mod 10)) Mod 10
+
+    ws.Range("B12").NumberFormat = "@"
+    ws.Range("B12").Value = s12 & CStr(pruef)
+End Sub
+
+
+' ================================================================
+'  Dropdowns einrichten (Warengruppe, Lagerort, MwSt)
+' ================================================================
+Sub DropdownsEinrichten()
+    Dim wsNA As Worksheet: Set wsNA = LagerMakros.GetSheet("Neuer Artikel")
+    If wsNA Is Nothing Then Exit Sub
+
+    ' Warengruppen-Dropdown (B8) aus Warengruppen-Sheet
+    Dim wsWG As Worksheet: Set wsWG = LagerMakros.GetSheet("Warengrupp")
+    If Not wsWG Is Nothing Then
+        Dim lastWG As Long: lastWG = wsWG.Cells(wsWG.Rows.count, 1).End(xlUp).Row
+        If lastWG >= 2 Then
+            Dim wgSource As String: wgSource = "=" & wsWG.Name & "!$A$2:$A$" & lastWG
+            With wsNA.Range("B8").Validation
+                .Delete
+                .Add Type:=xlValidateList, AlertStyle:=xlValidAlertInformation, _
+                     Operator:=xlBetween, Formula1:=wgSource
+                .IgnoreBlank = True
+                .InCellDropdown = True
+                .ShowError = False
+            End With
+        End If
+    End If
+
+    ' Lagerorte-Dropdown (B9) aus Lagerorte-Sheet
+    Dim wsLO As Worksheet: Set wsLO = LagerMakros.GetSheet("Lagerort")
+    If Not wsLO Is Nothing Then
+        Dim lastLO As Long: lastLO = wsLO.Cells(wsLO.Rows.count, 1).End(xlUp).Row
+        If lastLO >= 2 Then
+            Dim loSource As String: loSource = "=" & wsLO.Name & "!$A$2:$A$" & lastLO
+            With wsNA.Range("B9").Validation
+                .Delete
+                .Add Type:=xlValidateList, AlertStyle:=xlValidAlertInformation, _
+                     Operator:=xlBetween, Formula1:=loSource
+                .IgnoreBlank = True
+                .InCellDropdown = True
+                .ShowError = False
+            End With
+        End If
+    End If
+
+    ' MwSt-Dropdown (B10)
+    With wsNA.Range("B10").Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertInformation, _
+             Operator:=xlBetween, Formula1:="19,7"
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowError = False
+    End With
+
+    ' Attribut-Dropdown (B13) - eindeutige Werte aus Artikel-Sheet
+    Dim wsA As Worksheet: Set wsA = LagerMakros.GetSheet("Artikel")
+    If Not wsA Is Nothing Then
+        Dim cAttr As Long: cAttr = LagerMakros.Spalte_Finden(wsA, "Attribut")
+        If cAttr > 0 Then
+            ' Eindeutige nicht-leere Werte sammeln
+            Dim dict As Object: Set dict = CreateObject("Scripting.Dictionary")
+            dict.CompareMode = 1
+            Dim lastA As Long: lastA = wsA.Cells(wsA.Rows.count, cAttr).End(xlUp).Row
+            Dim j As Long
+            For j = 5 To lastA
+                Dim av As String: av = Trim(CStr(wsA.Cells(j, cAttr).Value))
+                If av <> "" And Not dict.Exists(av) Then dict.Add av, av
+            Next j
+            If dict.count > 0 Then
+                ' In versteckte Hilfsspalte G schreiben
+                wsNA.Range("G2:G200").ClearContents
+                Dim keys As Variant: keys = dict.keys
+                Dim ki As Integer
+                For ki = 0 To UBound(keys)
+                    wsNA.Cells(ki + 2, 7).Value = keys(ki)
+                Next ki
+                wsNA.Columns(7).Hidden = True
+                ' Validation fuer B13
+                Dim attrLast As Long: attrLast = dict.count + 1
+                With wsNA.Range("B13").Validation
+                    .Delete
+                    .Add Type:=xlValidateList, AlertStyle:=xlValidAlertInformation, _
+                         Operator:=xlBetween, Formula1:="=$G$2:$G$" & attrLast
+                    .IgnoreBlank = True
+                    .InCellDropdown = True
+                    .ShowError = False
+                End With
+            End If
+        End If
+    End If
+End Sub

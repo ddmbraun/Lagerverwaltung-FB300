@@ -20,9 +20,10 @@
     #clear-btn.visible { display: block; }
     #scan-btn { flex-shrink: 0; width: 42px; height: 42px; background: #1c3f6e; color: #fff; border: none; border-radius: 10px; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
-    #scan-status { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.7); align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
+    #scan-status { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; flex-direction: column; gap: 16px; }
     #scan-status.active { display: flex; }
     #scan-status p { color: #fff; font-size: 16px; }
+    #scan-video { width: 92%; max-width: 480px; border-radius: 14px; background: #000; }
     #scan-cancel { padding: 10px 28px; background: #fff; color: #1c3f6e; border: none; border-radius: 10px; font-size: 15px; font-weight: 600; cursor: pointer; }
 
     #detail-overlay { display: none; position: fixed; inset: 0; z-index: 998; background: rgba(0,0,0,0.5); align-items: flex-end; }
@@ -98,7 +99,8 @@
 </div>
 
 <div id="scan-status">
-  <p id="scan-msg">Barcode wird erkannt …</p>
+  <video id="scan-video" playsinline autoplay muted></video>
+  <p id="scan-msg">Kamera startet …</p>
   <button id="scan-cancel">Abbrechen</button>
 </div>
 
@@ -302,7 +304,78 @@ groupReset.addEventListener('click', function() {
 // ── Suche ────────────────────────────────────────────────
 document.getElementById('q').addEventListener('input', render);
 
-// ── Barcode Scanner ──────────────────────────────────────
+// ── Barcode Scanner: Live-Kamera, Foto als Fallback ──────
+var zxingReady = null;
+function loadZXing() {
+  if (window.ZXingBrowser) return Promise.resolve();
+  if (zxingReady) return zxingReady;
+  zxingReady = new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js';
+    var t = setTimeout(function() {
+      zxingReady = null;
+      reject('Zeitüberschreitung beim Laden der Scan-Bibliothek (Internet prüfen).');
+    }, 10000);
+    s.onload  = function() { clearTimeout(t); resolve(); };
+    s.onerror = function() {
+      clearTimeout(t); zxingReady = null;
+      reject('Scan-Bibliothek konnte nicht geladen werden (Internet prüfen).');
+    };
+    document.head.appendChild(s);
+  });
+  return zxingReady;
+}
+loadZXing().catch(function() {});   // beim Seitenstart im Hintergrund vorladen
+
+var scanControls = null;
+var scanOverlay  = document.getElementById('scan-status');
+var scanVideo    = document.getElementById('scan-video');
+
+function scanStop() {
+  if (scanControls) { try { scanControls.stop(); } catch(e) {} scanControls = null; }
+  scanOverlay.classList.remove('active');
+}
+
+function scanTreffer(text) {
+  scanStop();
+  if (navigator.vibrate) { try { navigator.vibrate(100); } catch(e) {} }
+  document.getElementById('q').value = text;
+  render();
+}
+
+function scanStart() {
+  document.getElementById('scan-msg').textContent = 'Kamera startet …';
+  scanVideo.style.display = '';
+  scanOverlay.classList.add('active');
+  loadZXing().then(function() {
+    var reader = new ZXingBrowser.BrowserMultiFormatReader();
+    return reader.decodeFromConstraints(
+      { audio: false, video: { facingMode: 'environment' } },
+      scanVideo,
+      function(result, err, controls) {
+        scanControls = controls;
+        if (result) scanTreffer(result.getText());
+      }
+    );
+  }).then(function(controls) {
+    if (controls) scanControls = controls;
+    if (scanOverlay.classList.contains('active')) {
+      document.getElementById('scan-msg').textContent = 'Barcode vor die Kamera halten';
+    }
+  }).catch(function(e) {
+    scanStop();
+    var grund = (e && e.name === 'NotAllowedError')
+      ? 'Kamerazugriff verweigert.\n(Einstellungen → Safari → Kamera → Erlauben)'
+      : 'Live-Kamera nicht verfügbar:\n' + e;
+    alert(grund + '\n\nFoto-Modus wird geöffnet.');
+    scanInput.click();
+  });
+}
+
+document.getElementById('scan-btn').addEventListener('click', scanStart);
+document.getElementById('scan-cancel').addEventListener('click', scanStop);
+
+// Foto-Fallback (nur wenn Live-Kamera nicht geht)
 var scanInput = document.createElement('input');
 scanInput.type = 'file';
 scanInput.accept = 'image/*';
@@ -310,41 +383,29 @@ scanInput.capture = 'environment';
 scanInput.style.display = 'none';
 document.body.appendChild(scanInput);
 
-document.getElementById('scan-btn').addEventListener('click', function() { scanInput.click(); });
-document.getElementById('scan-cancel').addEventListener('click', function() {
-  document.getElementById('scan-status').classList.remove('active');
-});
-
 scanInput.addEventListener('change', function() {
   var file = scanInput.files[0];
   if (!file) return;
   scanInput.value = '';
-  document.getElementById('scan-msg').textContent = 'Barcode wird erkannt …';
-  document.getElementById('scan-status').classList.add('active');
+  document.getElementById('scan-msg').textContent = 'Foto wird ausgewertet …';
+  scanVideo.style.display = 'none';
+  scanOverlay.classList.add('active');
 
-  var s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.4/umd/index.min.js';
-  s.onload = function() {
-    var img = new Image();
-    var url = URL.createObjectURL(file);
-    img.onload = function() {
-      new ZXingBrowser.BrowserMultiFormatReader()
-        .decodeFromImageElement(img)
-        .then(function(result) {
-          URL.revokeObjectURL(url);
-          document.getElementById('scan-status').classList.remove('active');
-          document.getElementById('q').value = result.getText();
-          render();
-        })
-        .catch(function() {
-          URL.revokeObjectURL(url);
-          document.getElementById('scan-status').classList.remove('active');
-          alert('Kein Barcode erkannt – bitte nochmal versuchen.');
-        });
-    };
-    img.src = url;
-  };
-  if (window.ZXingBrowser) { s.onload(); } else { document.head.appendChild(s); }
+  loadZXing().then(function() {
+    return new Promise(function(resolve, reject) {
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function() {
+        new ZXingBrowser.BrowserMultiFormatReader()
+          .decodeFromImageElement(img)
+          .then(function(r) { URL.revokeObjectURL(url); resolve(r.getText()); })
+          .catch(function()  { URL.revokeObjectURL(url); reject('Kein Barcode im Foto erkannt – bitte näher und scharf fotografieren.'); });
+      };
+      img.onerror = function() { URL.revokeObjectURL(url); reject('Foto konnte nicht gelesen werden.'); };
+      img.src = url;
+    });
+  }).then(scanTreffer)
+    .catch(function(e) { scanStop(); alert(e); });
 });
 
 // ── Start ────────────────────────────────────────────────

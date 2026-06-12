@@ -6981,8 +6981,5 @@
   {"nr":"6980","artnr":"4013595324914","artikel":"Wasser","ean":"4013595324914","vk":"2536,6","ek":"","bestand":"","einheit":"","lagerort":"","warengruppe":"","attribut":""},
   {"nr":"6981","artnr":"4013595324914","artikel":"wasser","ean":"4013595324914","vk":"22,36","ek":"1,36","bestand":"3","einheit":"Stk","lagerort":"","warengruppe":"","attribut":""},
   {"nr":"6982","artnr":"9000000001275","artikel":"holzgriff","ean":"9000000001275","vk":"2","ek":"2","bestand":"45","einheit":"Stk","lagerort":"Gefriertruhe","warengruppe":"Holz","attribut":"Braun2024_Gartenbedarf"},
-  {"nr":"6983","artnr":"12345","artikel":"stab Wasser","ean":"2000000000015","vk":"3","ek":"2","bestand":"23","einheit":"Stk","lagerort":"(ohne)","warengruppe":"(ohne)","attribut":""},
-  {"nr":"6984","artnr":"1234567","artikel":"tester","ean":"2000000000022","vk":"2","ek":"2","bestand":"0","einheit":"Stk","lagerort":"","warengruppe":"","attribut":""},
-  {"nr":"6985","artnr":"123456789","artikel":"tester3","ean":"2000000000039","vk":"2","ek":"2","bestand":"0","einheit":"Stk","lagerort":"","warengruppe":"","attribut":""},
-  {"nr":"6986","artnr":"w123","artikel":"reeee","ean":"2000000000046","vk":"32","ek":"23","bestand":"0","einheit":"Stk","lagerort":"","warengruppe":"","attribut":""}
+  {"nr":"6983","artnr":"12345","artikel":"stab Wasser","ean":"2000000000015","vk":"3","ek":"2","bestand":"23","einheit":"Stk","lagerort":"(ohne)","warengruppe":"(ohne)","attribut":""}
 ]

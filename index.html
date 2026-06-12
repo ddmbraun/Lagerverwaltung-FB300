@@ -113,6 +113,7 @@
 </div>
 
 <script>
+var APP_VERSION = 'v2 – Live-Scanner';   // bei jeder Änderung hochzählen!
 var CACHE_KEY = 'lager_data';
 var CACHE_TS  = 'lager_ts';
 
@@ -190,7 +191,7 @@ function applyData(raw, fromCache) {
   var ts = localStorage.getItem(CACHE_TS);
   var tsText = ts ? new Date(parseInt(ts)).toLocaleString('de-DE', {dateStyle:'short', timeStyle:'short'}) : '';
   document.getElementById('updated').textContent =
-    (fromCache ? 'Cache: ' : 'Stand: ') + tsText;
+    (fromCache ? 'Cache: ' : 'Stand: ') + tsText + '  ·  ' + APP_VERSION;
 
   render();
 }

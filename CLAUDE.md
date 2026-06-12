@@ -73,9 +73,9 @@ nur **Exporte** (erzeugt vom GITHUB-Button). Maßgeblich ist immer der Stand in 
 
 | Nr | Befund | Status |
 |---|---|---|
-| K1 | GitHub-Upload defekt (Repo im Lösch-Ordner, GIT_DIR falsch) | 🟢 VBA gefixt – Frank muss noch: `.git` im Explorer verschieben + Modul importieren |
-| K2 | lager.json Spalten-Mapping falsch, EK landet im Feld „ean", kein UTF-8 | 🟢 ExportLagerJSON neu (Artikel-Sheet, ab Z. 5, UTF-8) – Import + Testlauf offen |
-| K3 | ArtikelFix.bas abgeschnitten | ⬜ offen – wird beim nächsten GITHUB-Klick automatisch frisch exportiert |
+| K1 | GitHub-Upload defekt (Repo im Lösch-Ordner, GIT_DIR falsch) | ✅ BEHOBEN 12.06. – .git in Projektordner, GIT_DIR=ThisWorkbook.Path, FSO-Check, Push erfolgreich |
+| K2 | lager.json Spalten-Mapping falsch, EK landet im Feld „ean", kein UTF-8 | ✅ BEHOBEN 12.06. – Export aus Artikel-Sheet ab Z. 5, UTF-8, Testlauf verifiziert |
+| K3 | ArtikelFix.bas abgeschnitten | ⬜ in Klärung – Datei blieb nach Export unverändert: Modul fehlt evtl. in der Mappe oder ist dort ebenfalls abgeschnitten |
 | H1 | Schnellansicht: 3 verschiedene Spalten-Layouts | ⬜ offen |
 | H2 | Leseschleifen ab Zeile 3 statt 5 (Header wird Artikel) | ⬜ offen |
 | H3 | DuplikatPruefer inkompatibel mit V3-Layout | ⬜ offen |

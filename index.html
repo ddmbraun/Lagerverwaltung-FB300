@@ -135,9 +135,15 @@ function fetchFresh() {
   fetch('./lager.json')
     .then(function(r) { return r.ok ? r.json() : Promise.reject('HTTP ' + r.status); })
     .then(function(raw) {
-      localStorage.setItem(CACHE_KEY, JSON.stringify(raw));
-      localStorage.setItem(CACHE_TS, Date.now());
-      applyData(raw, false);
+      applyData(raw, false);   // Anzeige zuerst - darf nie am Cache scheitern
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify(raw));
+        localStorage.setItem(CACHE_TS, Date.now());
+      } catch(e) {
+        // Liste zu gross fuer den Browser-Cache (QuotaExceeded) - kein Problem,
+        // dann wird einfach bei jedem Aufruf frisch geladen.
+        try { localStorage.removeItem(CACHE_KEY); localStorage.removeItem(CACHE_TS); } catch(e2) {}
+      }
     })
     .catch(function(e) {
       if (!data.length) {

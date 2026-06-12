@@ -113,7 +113,7 @@
 </div>
 
 <script>
-var APP_VERSION = 'v3 – Live-Scanner';   // bei jeder Änderung hochzählen!
+var APP_VERSION = 'v4 – Live-Scanner';   // bei jeder Änderung hochzählen!
 var CACHE_KEY = 'lager_data';
 var CACHE_TS  = 'lager_ts';
 
@@ -363,9 +363,25 @@ function scanStart() {
   scanVideo.style.display = '';
   scanOverlay.classList.add('active');
   loadZXing().then(function() {
-    var reader = new ZXingBrowser.BrowserMultiFormatReader();
+    // Gezielt nach EAN/Code128 suchen + TRY_HARDER (deutlich bessere Trefferquote)
+    var hints;
+    try {
+      if (ZXingBrowser.DecodeHintType && ZXingBrowser.BarcodeFormat) {
+        hints = new Map();
+        hints.set(ZXingBrowser.DecodeHintType.POSSIBLE_FORMATS, [
+          ZXingBrowser.BarcodeFormat.EAN_13,
+          ZXingBrowser.BarcodeFormat.EAN_8,
+          ZXingBrowser.BarcodeFormat.CODE_128,
+          ZXingBrowser.BarcodeFormat.CODE_39
+        ]);
+        hints.set(ZXingBrowser.DecodeHintType.TRY_HARDER, true);
+      }
+    } catch(e) { hints = undefined; }
+
+    var reader = new ZXingBrowser.BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 150 });
     return reader.decodeFromConstraints(
-      { audio: false, video: { facingMode: 'environment' } },
+      // Hohe Aufloesung anfordern - Standard 640x480 reicht fuer kleine Etiketten nicht
+      { audio: false, video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } } },
       scanVideo,
       function(result, err, controls) {
         scanControls = controls;
@@ -375,7 +391,7 @@ function scanStart() {
   }).then(function(controls) {
     if (controls) scanControls = controls;
     if (scanOverlay.classList.contains('active')) {
-      document.getElementById('scan-msg').textContent = 'Barcode vor die Kamera halten';
+      document.getElementById('scan-msg').textContent = 'Barcode waagerecht, ca. 10–15 cm Abstand';
     }
   }).catch(function(e) {
     scanStop();

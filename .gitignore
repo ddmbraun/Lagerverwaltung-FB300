@@ -15,7 +15,13 @@
 #       node _lager-quelle/lager_bauen.js
 lager.json
 
-# Zugangscodes und innerer Datenschluessel des Code-Schlosses
+# ⛔ Das Einkaufs-Archiv aus den Lieferantenrechnungen. Enthaelt Einkaufspreise
+#   je Artikel und Datum - also noch mehr als lager.json. Geht wie diese
+#   VERSCHLUESSELT in die index.html und darf selbst nie hochgeladen werden.
+einkaeufe.csv
+einkaeufe.json
+
+# Zugangscodes, innerer Datenschluessel, Leser und Einkaufs-Archiv
 /_lager-quelle/
 
 # ── DIE ARBEITSMAPPE ────────────────────────────────────────────────────────

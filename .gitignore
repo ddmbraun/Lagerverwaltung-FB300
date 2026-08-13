@@ -1,0 +1,51 @@
+# Lagerverwaltung FB300 - was NICHT nach GitHub darf.
+#
+# ⚠ WICHTIG: Der Export-Knopf in Excel macht "git add -A". Er nimmt also ALLES
+#   mit, was hier nicht ausdruecklich gesperrt ist. Genau so sind am 13.08.2026
+#   der interne Pruefbericht, die Arbeitsanweisung und die komplette Arbeitsmappe
+#   oeffentlich im Netz gelandet - niemand hat sie hochgeladen, das Makro hat sie
+#   eingesammelt. Wer hier eine Regel entfernt, veroeffentlicht beim naechsten
+#   Knopfdruck etwas.
+
+# ── KLARTEXT-LAGERDATEN ─────────────────────────────────────────────────────
+# ⛔ lager.json enthaelt zu 6.983 Artikeln VK **und EK** - daraus laesst sich die
+#   Marge des ganzen Sortiments ablesen. Sie geht seit dem Code-Schloss
+#   VERSCHLUESSELT in die index.html und darf selbst nie wieder hochgeladen
+#   werden. Gepflegt wird sie oertlich; gebaut mit:
+#       node _lager-quelle/lager_bauen.js
+lager.json
+
+# Zugangscodes und innerer Datenschluessel des Code-Schlosses
+/_lager-quelle/
+
+# ── DIE ARBEITSMAPPE ────────────────────────────────────────────────────────
+# ⛔ Die .xlsm enthaelt dieselben Daten wie lager.json, nur unverschluesselt.
+#   Sie oeffentlich abzulegen macht das Code-Schloss wertlos.
+*.xlsm
+*.xlsx
+
+# ── SICHERUNGSDATEIEN ───────────────────────────────────────────────────────
+*.bak
+*.bak_*
+*.BACKUP-*
+~$*
+*.tmp
+
+# ── INTERNE DOKUMENTATION ───────────────────────────────────────────────────
+# Grundsatz wie in den PAM-Repos seit 11.08.2026: ALLE .md bleiben oertlich,
+# einzige Ausnahme ist README.md (steht auf der GitHub-Seite ganz oben).
+*.md
+!README.md
+
+# ── HILFSSKRIPTE ────────────────────────────────────────────────────────────
+*.bat
+*.cmd
+*.ps1
+
+# ── Altbestand / Fremddaten ─────────────────────────────────────────────────
+Backup/
+Backup_*/
+Pruefen bevor loeschen/
+Prüfen bevor löschen/
+# Lieferanten-Preisliste (Fremddaten)
+MF_DACH_MAT.csv

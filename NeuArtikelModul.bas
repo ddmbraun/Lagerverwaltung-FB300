@@ -72,7 +72,7 @@ Sub Setup_ArtikelKopf()
         Set s = wsA.Shapes.AddShape(msoShapeRoundedRectangle, _
             startLeft + i * (btnW + gap), btnTop, btnW, btnH)
         s.Name = btnData(i, 0)
-        s.TextFrame.Characters.Text = btnData(i, 1)
+        s.TextFrame.Characters.text = btnData(i, 1)
         s.TextFrame.Characters.Font.Bold = True
         s.TextFrame.Characters.Font.Size = 9
         s.TextFrame.Characters.Font.Color = RGB(255, 255, 255)
@@ -91,7 +91,7 @@ Sub Setup_ArtikelKopf()
     Set fx = wsA.Shapes.AddShape(msoShapeRoundedRectangle, _
         wsA.Range("E1").Left - 26, btnTop, 22, btnH)
     fx.Name = "btn_FilterX"
-    fx.TextFrame.Characters.Text = "X"
+    fx.TextFrame.Characters.text = "X"
     fx.TextFrame.Characters.Font.Bold = True
     fx.TextFrame.Characters.Font.Size = 9
     fx.TextFrame.Characters.Font.Color = RGB(255, 255, 255)
@@ -183,7 +183,7 @@ Sub Artikel_Suchen(wsA As Worksheet, such As String)
     Set shp = wsA.Shapes.AddShape(msoShapeRoundedRectangle, _
         wsA.Range("A1").Left + 2, wsA.Range("A1").Top + 3, 75, 19)
     shp.Name = "lbl_Treffer"
-    shp.TextFrame.Characters.Text = treffer & " Treffer"
+    shp.TextFrame.Characters.text = treffer & " Treffer"
     shp.TextFrame.Characters.Font.Bold = True
     shp.TextFrame.Characters.Font.Size = 9
     shp.TextFrame.Characters.Font.Color = RGB(255, 255, 255)

@@ -21,6 +21,10 @@ lager.json
 einkaeufe.csv
 einkaeufe.json
 
+# ⛔ Preisvergleich fuer MF dach (26.08.2026): echte bezahlte EK-Preise je
+#   Artikel neben dem MF-dach-Kalkulationspreis. Bleibt oertlich.
+Preisvergleich_MFdach.csv
+
 # Zugangscodes, innerer Datenschluessel, Leser und Einkaufs-Archiv
 /_lager-quelle/
 
@@ -47,11 +51,30 @@ einkaeufe.json
 *.bat
 *.cmd
 *.ps1
+# 16.08.2026 ergaenzt: Die Pruefskripte fuer die VBA-Module (Blockstruktur, erzeugter
+# Blatt-Code, undefinierte Aufrufe, Knopf-Zuordnungen) bleiben oertlich. Sie enthalten
+# zwar keine Kundendaten, gehoeren aber nicht ins oeffentliche Repo.
+*.py
+/_pruefung/
 
 # ── Altbestand / Fremddaten ─────────────────────────────────────────────────
 Backup/
 Backup_*/
 Pruefen bevor loeschen/
 Prüfen bevor löschen/
-# Lieferanten-Preisliste (Fremddaten)
+# Lieferanten-Preisliste (Fremddaten) und ALLE MF-dach-Exporte (27.08.2026):
+# Frank exportiert Materialdateien aus MF Material hierher - die enthalten
+# Einkaufspreise und duerfen nie hochgeladen werden, egal wie sie heissen.
+# ⛔ 27.08.2026 abends verschaerft auf JEDE .csv/.txt: Der erste echte Export
+#   hiess "mf export neu.csv" (klein, mit Leerzeichen) - das Muster "MF_*.csv"
+#   haette ihn NICHT gesperrt. In diesem Ordner gibt es keine einzige CSV,
+#   die je nach GitHub darf - also pauschal sperren statt Namen raten.
 MF_DACH_MAT.csv
+*.csv
+*.txt
+# ⛔ Datanorm-Dateien (29.08.2026): MF Materials Export/Import-Format, enthaelt
+#   Artikel + Preise. Heisst DATANORM.000/.001... bzw. DATPREIS.* - sperren.
+DATANORM*
+datanorm*
+DATPREIS*
+datpreis*

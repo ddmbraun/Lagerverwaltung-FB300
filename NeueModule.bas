@@ -203,7 +203,7 @@ Sub Setup_SchnellDetail()
         .Name = "btnEKToggle"
         .Fill.ForeColor.RGB = RGB(91, 155, 213)
         .Line.Visible = msoFalse
-        .TextFrame.Characters.Text = "EK EINBL."
+        .TextFrame.Characters.text = "EK EINBL."
         .TextFrame.Characters.Font.Bold = True
         .TextFrame.Characters.Font.Color = RGB(255, 255, 255)
         .TextFrame.Characters.Font.Size = 11
@@ -221,7 +221,7 @@ Sub Setup_SchnellDetail()
         .Name = "btnSchnellDetailSchliessen"
         .Fill.ForeColor.RGB = RGB(192, 0, 0)
         .Line.Visible = msoFalse
-        .TextFrame.Characters.Text = "SCHLIESSEN"
+        .TextFrame.Characters.text = "SCHLIESSEN"
         .TextFrame.Characters.Font.Bold = True
         .TextFrame.Characters.Font.Color = RGB(255, 255, 255)
         .TextFrame.Characters.Font.Size = 11
@@ -373,9 +373,9 @@ Sub SchnellDetail_EK_Toggle()
     For Each shp In wsSD.Shapes
         If shp.Name = "btnEKToggle" Then
             If wsSD.Rows(7).Hidden Then
-                shp.TextFrame.Characters.Text = "EK EINBL."
+                shp.TextFrame.Characters.text = "EK EINBL."
             Else
-                shp.TextFrame.Characters.Text = "EK AUSBL."
+                shp.TextFrame.Characters.text = "EK AUSBL."
             End If
             Exit For
         End If
@@ -1421,7 +1421,7 @@ Sub Setup_Artikel_Toolbar()
     Set oSuch = wsA.Shapes.AddShape(msoShapeRoundedRectangle, xPos2, yPos2, btnW2, btnH2)
     With oSuch
         .Name = "btnSuchen": .Fill.ForeColor.RGB = gruen: .Line.Visible = msoFalse
-        .TextFrame.Characters.Text = "SUCHEN": .TextFrame.Characters.Font.Bold = True
+        .TextFrame.Characters.text = "SUCHEN": .TextFrame.Characters.Font.Bold = True
         .TextFrame.Characters.Font.Color = RGB(255, 255, 255): .TextFrame.Characters.Font.Size = 13
         .TextFrame.HorizontalAlignment = xlCenter: .TextFrame.VerticalAlignment = xlCenter
         .OnAction = "LagerMakros.Artikel_Suchen"
@@ -1433,7 +1433,7 @@ Sub Setup_Artikel_Toolbar()
     With oTreffer
         .Name = "trefferAnzeige": .Fill.ForeColor.RGB = RGB(242, 242, 242)
         .Line.ForeColor.RGB = RGB(180, 180, 180): .Line.Visible = msoTrue
-        .TextFrame.Characters.Text = "Treffer": .TextFrame.Characters.Font.Bold = True
+        .TextFrame.Characters.text = "Treffer": .TextFrame.Characters.Font.Bold = True
         .TextFrame.Characters.Font.Size = 12: .TextFrame.Characters.Font.Color = RGB(89, 89, 89)
         .TextFrame.HorizontalAlignment = xlCenter: .TextFrame.VerticalAlignment = xlCenter
     End With
@@ -1443,7 +1443,7 @@ Sub Setup_Artikel_Toolbar()
     Set oLeer = wsA.Shapes.AddShape(msoShapeRoundedRectangle, xPos2, yPos2, btnW2, btnH2)
     With oLeer
         .Name = "btnLeeren": .Fill.ForeColor.RGB = orange: .Line.Visible = msoFalse
-        .TextFrame.Characters.Text = "LEEREN": .TextFrame.Characters.Font.Bold = True
+        .TextFrame.Characters.text = "LEEREN": .TextFrame.Characters.Font.Bold = True
         .TextFrame.Characters.Font.Color = RGB(255, 255, 255): .TextFrame.Characters.Font.Size = 13
         .TextFrame.HorizontalAlignment = xlCenter: .TextFrame.VerticalAlignment = xlCenter
         .OnAction = "LagerMakros.Artikel_Suche_Leeren"
@@ -1454,7 +1454,7 @@ Sub Setup_Artikel_Toolbar()
     Set oAkt = wsA.Shapes.AddShape(msoShapeRoundedRectangle, xPos2, yPos2, btnW2 + 30, btnH2)
     With oAkt
         .Name = "btnAktualisieren": .Fill.ForeColor.RGB = RGB(0, 112, 96): .Line.Visible = msoFalse
-        .TextFrame.Characters.Text = "AKTUALISIEREN": .TextFrame.Characters.Font.Bold = True
+        .TextFrame.Characters.text = "AKTUALISIEREN": .TextFrame.Characters.Font.Bold = True
         .TextFrame.Characters.Font.Color = RGB(255, 255, 255): .TextFrame.Characters.Font.Size = 11
         .TextFrame.HorizontalAlignment = xlCenter: .TextFrame.VerticalAlignment = xlCenter
         .OnAction = "LagerMakros.Artikel_Aktualisieren"
@@ -1485,7 +1485,7 @@ Sub Setup_Artikel_Toolbar()
         Set oB = wsA.Shapes.AddShape(msoShapeRoundedRectangle, xPos, yPos, btnW3, btnH3)
         With oB
             .Name = "btnT3_" & bi: .Fill.ForeColor.RGB = btns(bi)(1): .Line.Visible = msoFalse
-            .TextFrame.Characters.Text = btns(bi)(0): .TextFrame.Characters.Font.Bold = True
+            .TextFrame.Characters.text = btns(bi)(0): .TextFrame.Characters.Font.Bold = True
             .TextFrame.Characters.Font.Color = RGB(255, 255, 255): .TextFrame.Characters.Font.Size = 10
             .TextFrame.HorizontalAlignment = xlCenter: .TextFrame.VerticalAlignment = xlCenter
             .OnAction = btns(bi)(2)

@@ -1,0 +1,18 @@
+# Zeilenenden: im Speicher und beim Auschecken immer LF.
+# Ohne diese Datei schreibt Git auf Windows CRLF in die Arbeitskopie, sobald eine
+# Datei ausgecheckt wird. Der Inhalt aendert sich dadurch nicht, aber jede spaetere
+# Aenderung ergaebe einen Unterschied ueber die ganze Datei.
+
+* text=auto eol=lf
+
+# Binaerdateien nie umschreiben. Git erkennt sie an den NUL-Bytes zwar selbst -
+# ausdruecklich ist sicherer, eine falsch erkannte Datei waere still beschaedigt.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
+*.xlsm binary
+*.xlsx binary

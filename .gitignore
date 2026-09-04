@@ -8,7 +8,7 @@
 #   Knopfdruck etwas.
 
 # ── KLARTEXT-LAGERDATEN ─────────────────────────────────────────────────────
-# ⛔ lager.json enthaelt zu 6.983 Artikeln VK **und EK** - daraus laesst sich die
+# ⛔ lager.json enthaelt zu ALLEN Artikeln VK **und EK** - daraus laesst sich die
 #   Marge des ganzen Sortiments ablesen. Sie geht seit dem Code-Schloss
 #   VERSCHLUESSELT in die index.html und darf selbst nie wieder hochgeladen
 #   werden. Gepflegt wird sie oertlich; gebaut mit:
